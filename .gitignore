@@ -5,6 +5,9 @@ build/
 .turbo/
 .npm-cache/
 
+# TS incremental compilation cache
+*.tsbuildinfo
+
 # env
 .env
 .env.local
