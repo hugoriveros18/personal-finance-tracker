@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+**/build
+.git
+.env
+.env.local
+**/.env.local
+data/
+.planning/
+**/coverage
+**/.cache
+**/.turbo
+.npm-cache
+*.log
+.DS_Store

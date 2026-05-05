@@ -1,0 +1,26 @@
+{
+  "name": "personal-finance-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Full-stack personal finance tracker — local-only, Docker-deployed.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "echo 'Use docker compose up for full stack, or run apps individually with npm -w apps/<name> run dev'",
+    "build": "npm -ws --if-present run build",
+    "lint": "npm -ws --if-present run lint",
+    "typecheck": "npm -ws --if-present run typecheck",
+    "test": "npm -ws --if-present run test",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

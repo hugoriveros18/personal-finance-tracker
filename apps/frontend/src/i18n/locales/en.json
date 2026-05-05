@@ -1,0 +1,203 @@
+{
+  "app": {
+    "tagline": "Personal Finance Tracker"
+  },
+  "validation": {
+    "required": "This field is required",
+    "stringMin": "At least {{min}} characters",
+    "stringMax": "At most {{max}} characters",
+    "numberMin": "Minimum value is {{min}}",
+    "numberMax": "Maximum value is {{max}}",
+    "arrayMin": "Select at least {{min}}",
+    "arrayMax": "Select at most {{max}}",
+    "email": "Invalid email",
+    "invalid": "Invalid value"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "categories": "Categories",
+    "transactions": "Transactions",
+    "movements": "Movements",
+    "liabilityPayments": "Liability payments",
+    "profile": "Profile",
+    "backup": "Backup"
+  },
+  "auth": {
+    "login": "Sign in",
+    "register": "Create account",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "currentPassword": "Current password",
+    "confirmPassword": "Confirm password",
+    "nombre": "First name",
+    "apellidos": "Last name",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "signInTitle": "Welcome back",
+    "signUpTitle": "Create your account",
+    "submit": "Continue",
+    "passwordsDontMatch": "Passwords do not match",
+    "registrationDisabled": "Registration is disabled on this server",
+    "invalidCredentials": "Wrong email or password"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View details",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading…",
+    "noData": "No data",
+    "actions": "Actions",
+    "all": "All",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "from": "From",
+    "to": "To",
+    "yes": "Yes",
+    "no": "No",
+    "confirmDelete": "Are you sure you want to delete this record?",
+    "deleted": "Record deleted",
+    "saved": "Changes saved",
+    "created": "Record created",
+    "month": "Month",
+    "year": "Year",
+    "amount": "Amount",
+    "description": "Description",
+    "date": "Date",
+    "type": "Type",
+    "category": "Category",
+    "account": "Account",
+    "name": "Name",
+    "min": "Min.",
+    "max": "Max."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your financial activity",
+    "monthlySummary": "Monthly summary",
+    "globalSnapshot": "Global snapshot (today)",
+    "income": "Income",
+    "expenses": "Expenses",
+    "newPasivos": "New liabilities",
+    "ahorroVariacion": "Savings change",
+    "ahorroVariacionHint": "Net effect of transfers between available and savings this month",
+    "disponible": "Available",
+    "ahorro": "Savings",
+    "pasivos": "Liabilities",
+    "netWorth": "Net worth",
+    "incomeMonths": "Income by month",
+    "expensesMonths": "Expenses by month (egreso + new liabilities)",
+    "ahorroVariacionMonths": "Savings change by month",
+    "topCategoriesMonth": "Top categories this month",
+    "topCategoriesYear": "Top categories this year",
+    "noCategoryData": "No data for this period"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "subtitle": "Your accounts and current balances",
+    "newAccount": "New account",
+    "initialBalances": "Initial balances",
+    "initialBalancesHint": "These values cannot be edited later.",
+    "payLiability": "Pay liability",
+    "totalsBar": {
+      "disponible": "Total available",
+      "ahorro": "Total savings",
+      "pasivos": "Total liabilities",
+      "patrimonio": "Net worth"
+    },
+    "delete": "Delete account",
+    "deleteHint": "Only accounts without transactions, movements or payments can be deleted.",
+    "tabs": {
+      "transactions": "Transactions",
+      "movements": "Movements",
+      "liabilityPayments": "Liability payments"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "subtitle": "Income and expense categories",
+    "newCategory": "New category",
+    "tipoIngreso": "Income",
+    "tipoEgreso": "Expense",
+    "categoryTrend": "Monthly category trend"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "subtitle": "Income, expenses and new liabilities",
+    "newTransaction": "New transaction",
+    "tipoIngreso": "Income",
+    "tipoEgreso": "Expense",
+    "tipoPasivo": "Liability",
+    "filters": {
+      "byCategory": "Categories",
+      "byAccount": "Accounts",
+      "byType": "Types",
+      "minAmount": "Min.",
+      "maxAmount": "Max."
+    }
+  },
+  "movements": {
+    "title": "Movements",
+    "subtitle": "Transfers between accounts and within available/savings",
+    "newMovement": "New movement",
+    "flujo": {
+      "INTER_DISPONIBLE": "Between accounts",
+      "INTRA_DISPONIBLE_TO_AHORRO": "Available → Savings",
+      "INTRA_AHORRO_TO_DISPONIBLE": "Savings → Available"
+    },
+    "from": "From account",
+    "to": "To account"
+  },
+  "liabilityPayments": {
+    "title": "Liability payments",
+    "subtitle": "Payments toward your liabilities using available balance",
+    "newPayment": "New payment",
+    "noPasivos": "This account has no liabilities to pay."
+  },
+  "profile": {
+    "title": "My profile",
+    "subtitle": "Personal info and preferences",
+    "personalInfo": "Personal info",
+    "changePassword": "Change password",
+    "preferences": "Preferences",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "avatar": "Profile picture",
+    "uploadAvatar": "Upload picture",
+    "removeAvatar": "Remove picture",
+    "passwordChanged": "Password updated",
+    "logoutAfterChange": "Your session will reset."
+  },
+  "backup": {
+    "title": "Backup",
+    "subtitle": "Export your data to move it to another machine or restore it later",
+    "export": "Export data",
+    "exportHint": "Download a JSON file with all your categories, accounts, transactions, movements and payments.",
+    "import": "Import data",
+    "importHint": "Upload a previously exported file. By default it replaces your current data.",
+    "importDryRun": "Validate without importing",
+    "importReplace": "Replace current data",
+    "importDone": "Import completed"
+  },
+  "errors": {
+    "INSUFFICIENT_DISPONIBLE": "Insufficient available balance",
+    "WOULD_VIOLATE_INVARIANT": "This operation would leave an account with a negative balance",
+    "CATEGORY_TIPO_MISMATCH": "The category type does not match the transaction type",
+    "INVALID_FLUJO_SHAPE": "Accounts do not match the movement type",
+    "EMAIL_TAKEN": "Email is already registered",
+    "CONFLICT": "Resource conflict",
+    "IN_USE": "Resource is in use and cannot be deleted",
+    "GUARD_REJECTED": "Operation rejected by a database guard",
+    "VALIDATION_ERROR": "Invalid data",
+    "FORBIDDEN": "Action not allowed"
+  }
+}

@@ -1,0 +1,30 @@
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/server.ts'],
+  outDir: 'dist',
+  format: ['esm'],
+  target: 'node20',
+  splitting: false,
+  sourcemap: true,
+  clean: true,
+  bundle: true,
+  minify: false,
+  external: [
+    '@prisma/client',
+    '.prisma/client',
+    'argon2',
+    'sharp',
+    'fastify',
+    '@fastify/cookie',
+    '@fastify/cors',
+    '@fastify/helmet',
+    '@fastify/jwt',
+    '@fastify/multipart',
+    '@fastify/rate-limit',
+    '@fastify/static',
+    'zod',
+    'fastify-type-provider-zod',
+    'pino-pretty',
+  ],
+});

@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  es
+  en
+}
+
+enum Theme {
+  light
+  dark
+}
+
+enum CategoryTipo {
+  ingreso
+  egreso
+}
+
+enum TransactionTipo {
+  ingreso
+  egreso
+  pasivo
+}
+
+enum MovementFlujo {
+  INTER_DISPONIBLE
+  INTRA_DISPONIBLE_TO_AHORRO
+  INTRA_AHORRO_TO_DISPONIBLE
+}
+
+model User {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre            String   @db.VarChar(80)
+  apellidos         String   @db.VarChar(120)
+  email             String   @unique @db.VarChar(254)
+  passwordHash      String   @map("password_hash") @db.Text
+  avatarPath        String?  @map("avatar_path") @db.Text
+  preferredLanguage Language @default(es) @map("preferred_language")
+  preferredTheme    Theme    @default(light) @map("preferred_theme")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  categories        Category[]
+  accounts          Account[]
+  transactions      Transaction[]
+  movements         Movement[]
+  liabilityPayments LiabilityPayment[]
+  refreshTokens     RefreshToken[]
+
+  @@map("user")
+}
+
+model Category {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  nombre    String       @db.VarChar(80)
+  tipo      CategoryTipo
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, nombre, tipo])
+  @@index([userId, tipo])
+  @@map("category")
+}
+
+model Account {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  nombre     String   @db.VarChar(80)
+  disponible BigInt   @default(0)
+  ahorro     BigInt   @default(0)
+  pasivos    BigInt   @default(0)
+  total      BigInt   @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+  movementsAsEmisora   Movement[]         @relation("MovementEmisora")
+  movementsAsReceptora Movement[]         @relation("MovementReceptora")
+  liabilityPayments    LiabilityPayment[]
+
+  @@unique([userId, nombre])
+  @@index([userId])
+  @@map("account")
+}
+
+model Transaction {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String          @map("user_id") @db.Uuid
+  accountId    String          @map("account_id") @db.Uuid
+  categoryId   String          @map("category_id") @db.Uuid
+  categoryTipo CategoryTipo    @map("category_tipo")
+  descripcion  String          @db.VarChar(200)
+  fecha        DateTime        @db.Date
+  tipo         TransactionTipo
+  valor        BigInt
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId, fecha])
+  @@index([userId, accountId, fecha])
+  @@index([userId, categoryId, fecha])
+  @@index([userId, tipo, fecha])
+  @@map("transaction")
+}
+
+model Movement {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  cuentaEmisoraId   String        @map("cuenta_emisora_id") @db.Uuid
+  cuentaReceptoraId String        @map("cuenta_receptora_id") @db.Uuid
+  flujo             MovementFlujo
+  descripcion       String        @db.VarChar(200)
+  fecha             DateTime      @db.Date
+  valor             BigInt
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cuentaEmisora   Account @relation("MovementEmisora", fields: [cuentaEmisoraId], references: [id], onDelete: Restrict)
+  cuentaReceptora Account @relation("MovementReceptora", fields: [cuentaReceptoraId], references: [id], onDelete: Restrict)
+
+  @@index([userId, fecha])
+  @@index([userId, cuentaEmisoraId, fecha])
+  @@index([userId, cuentaReceptoraId, fecha])
+  @@index([userId, flujo, fecha])
+  @@map("movement")
+}
+
+model LiabilityPayment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  accountId   String   @map("account_id") @db.Uuid
+  descripcion String   @db.VarChar(200)
+  fecha       DateTime @db.Date
+  valor       BigInt
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, fecha])
+  @@index([userId, accountId, fecha])
+  @@map("liability_payment")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.Text
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  userAgent String?   @map("user_agent") @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_token")
+}

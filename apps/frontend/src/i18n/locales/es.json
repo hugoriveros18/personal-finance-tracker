@@ -1,0 +1,203 @@
+{
+  "app": {
+    "tagline": "Personal Finance Tracker"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "stringMin": "Mínimo {{min}} caracteres",
+    "stringMax": "Máximo {{max}} caracteres",
+    "numberMin": "El valor mínimo es {{min}}",
+    "numberMax": "El valor máximo es {{max}}",
+    "arrayMin": "Selecciona al menos {{min}}",
+    "arrayMax": "Selecciona como máximo {{max}}",
+    "email": "Correo inválido",
+    "invalid": "Valor inválido"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "accounts": "Cuentas",
+    "categories": "Categorías",
+    "transactions": "Transacciones",
+    "movements": "Movimientos",
+    "liabilityPayments": "Pagos de pasivo",
+    "profile": "Perfil",
+    "backup": "Respaldo"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Crear cuenta",
+    "logout": "Cerrar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "newPassword": "Nueva contraseña",
+    "currentPassword": "Contraseña actual",
+    "confirmPassword": "Confirmar contraseña",
+    "nombre": "Nombre",
+    "apellidos": "Apellidos",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "noAccount": "¿No tienes cuenta?",
+    "signInTitle": "Bienvenido de vuelta",
+    "signUpTitle": "Crear tu cuenta",
+    "submit": "Continuar",
+    "passwordsDontMatch": "Las contraseñas no coinciden",
+    "registrationDisabled": "El registro está deshabilitado en este servidor",
+    "invalidCredentials": "Correo o contraseña incorrectos"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver detalle",
+    "create": "Crear",
+    "search": "Buscar",
+    "loading": "Cargando…",
+    "noData": "Sin datos",
+    "actions": "Acciones",
+    "all": "Todos",
+    "filters": "Filtros",
+    "clearFilters": "Limpiar filtros",
+    "from": "Desde",
+    "to": "Hasta",
+    "yes": "Sí",
+    "no": "No",
+    "confirmDelete": "¿Estás seguro de eliminar este registro?",
+    "deleted": "Registro eliminado",
+    "saved": "Cambios guardados",
+    "created": "Registro creado",
+    "month": "Mes",
+    "year": "Año",
+    "amount": "Valor",
+    "description": "Descripción",
+    "date": "Fecha",
+    "type": "Tipo",
+    "category": "Categoría",
+    "account": "Cuenta",
+    "name": "Nombre",
+    "min": "Mín.",
+    "max": "Máx."
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Resumen de tu actividad financiera",
+    "monthlySummary": "Resumen del mes",
+    "globalSnapshot": "Resumen global (hoy)",
+    "income": "Ingresos",
+    "expenses": "Egresos",
+    "newPasivos": "Nuevos pasivos",
+    "ahorroVariacion": "Variación de ahorro",
+    "ahorroVariacionHint": "Resultado neto de los movimientos entre disponible y ahorro este mes",
+    "disponible": "Disponible",
+    "ahorro": "Ahorro",
+    "pasivos": "Pasivos",
+    "netWorth": "Patrimonio",
+    "incomeMonths": "Ingresos por mes",
+    "expensesMonths": "Egresos por mes (egresos + nuevos pasivos)",
+    "ahorroVariacionMonths": "Variación de ahorro por mes",
+    "topCategoriesMonth": "Top categorías del mes",
+    "topCategoriesYear": "Top categorías del año",
+    "noCategoryData": "Sin movimientos en este periodo"
+  },
+  "accounts": {
+    "title": "Cuentas",
+    "subtitle": "Tus cuentas y saldos actuales",
+    "newAccount": "Nueva cuenta",
+    "initialBalances": "Saldos iniciales",
+    "initialBalancesHint": "Estos valores no se podrán modificar luego.",
+    "payLiability": "Pagar pasivo",
+    "totalsBar": {
+      "disponible": "Disponible total",
+      "ahorro": "Ahorro total",
+      "pasivos": "Pasivos totales",
+      "patrimonio": "Patrimonio"
+    },
+    "delete": "Eliminar cuenta",
+    "deleteHint": "Solo se pueden eliminar cuentas sin transacciones, movimientos ni pagos de pasivo.",
+    "tabs": {
+      "transactions": "Transacciones",
+      "movements": "Movimientos",
+      "liabilityPayments": "Pagos de pasivo"
+    }
+  },
+  "categories": {
+    "title": "Categorías",
+    "subtitle": "Categorías de ingresos y egresos",
+    "newCategory": "Nueva categoría",
+    "tipoIngreso": "Ingreso",
+    "tipoEgreso": "Egreso",
+    "categoryTrend": "Tendencia mensual por categoría"
+  },
+  "transactions": {
+    "title": "Transacciones",
+    "subtitle": "Ingresos, egresos y nuevos pasivos",
+    "newTransaction": "Nueva transacción",
+    "tipoIngreso": "Ingreso",
+    "tipoEgreso": "Egreso",
+    "tipoPasivo": "Pasivo",
+    "filters": {
+      "byCategory": "Categorías",
+      "byAccount": "Cuentas",
+      "byType": "Tipos",
+      "minAmount": "Mín.",
+      "maxAmount": "Máx."
+    }
+  },
+  "movements": {
+    "title": "Movimientos",
+    "subtitle": "Transferencias entre cuentas y entre disponible/ahorro",
+    "newMovement": "Nuevo movimiento",
+    "flujo": {
+      "INTER_DISPONIBLE": "Entre cuentas",
+      "INTRA_DISPONIBLE_TO_AHORRO": "Disponible → Ahorro",
+      "INTRA_AHORRO_TO_DISPONIBLE": "Ahorro → Disponible"
+    },
+    "from": "Desde cuenta",
+    "to": "Hacia cuenta"
+  },
+  "liabilityPayments": {
+    "title": "Pagos de pasivo",
+    "subtitle": "Pagos a tus pasivos usando disponible",
+    "newPayment": "Nuevo pago",
+    "noPasivos": "Esta cuenta no tiene pasivos para pagar."
+  },
+  "profile": {
+    "title": "Mi perfil",
+    "subtitle": "Información personal y preferencias",
+    "personalInfo": "Información personal",
+    "changePassword": "Cambiar contraseña",
+    "preferences": "Preferencias",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "avatar": "Foto de perfil",
+    "uploadAvatar": "Subir foto",
+    "removeAvatar": "Quitar foto",
+    "passwordChanged": "Contraseña actualizada",
+    "logoutAfterChange": "Tu sesión se reiniciará."
+  },
+  "backup": {
+    "title": "Respaldo",
+    "subtitle": "Exporta tus datos para llevarlos a otra máquina o réstaurarlos",
+    "export": "Exportar datos",
+    "exportHint": "Descarga un archivo JSON con todas tus categorías, cuentas, transacciones, movimientos y pagos.",
+    "import": "Importar datos",
+    "importHint": "Sube un archivo previamente exportado. Por defecto reemplaza los datos actuales.",
+    "importDryRun": "Validar sin importar",
+    "importReplace": "Reemplazar datos actuales",
+    "importDone": "Importación completada"
+  },
+  "errors": {
+    "INSUFFICIENT_DISPONIBLE": "Saldo disponible insuficiente",
+    "WOULD_VIOLATE_INVARIANT": "Esta operación dejaría una cuenta en saldo negativo",
+    "CATEGORY_TIPO_MISMATCH": "El tipo de la categoría no coincide con el tipo de la transacción",
+    "INVALID_FLUJO_SHAPE": "Las cuentas no coinciden con el tipo de movimiento",
+    "EMAIL_TAKEN": "Este correo ya está registrado",
+    "CONFLICT": "Recurso en conflicto",
+    "IN_USE": "El recurso está en uso y no se puede eliminar",
+    "GUARD_REJECTED": "Operación rechazada por una validación de la base de datos",
+    "VALIDATION_ERROR": "Datos inválidos",
+    "FORBIDDEN": "Acción no permitida"
+  }
+}
