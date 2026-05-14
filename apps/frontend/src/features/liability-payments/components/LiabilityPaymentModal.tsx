@@ -43,6 +43,7 @@ function FormBody({ account, onClose }: Props) {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<V>({
     resolver: zodResolver(schema),
@@ -88,7 +89,18 @@ function FormBody({ account, onClose }: Props) {
           <Text size="sm" c="dimmed">
             {t('common.max')}
           </Text>
-          <MoneyDisplay value={max} fw={600} c="teal.7" />
+          <Group gap="xs">
+            <MoneyDisplay value={max} fw={600} c="teal.7" />
+            <Button
+              size="compact-xs"
+              variant="light"
+              color="teal"
+              disabled={max <= 0}
+              onClick={() => setValue('valor', max, { shouldValidate: true, shouldDirty: true })}
+            >
+              {t('liabilityPayments.payAll')}
+            </Button>
+          </Group>
         </Group>
         <Controller
           control={control}

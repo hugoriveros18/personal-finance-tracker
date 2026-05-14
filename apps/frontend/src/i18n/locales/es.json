@@ -159,7 +159,8 @@
     "title": "Pagos de pasivo",
     "subtitle": "Pagos a tus pasivos usando disponible",
     "newPayment": "Nuevo pago",
-    "noPasivos": "Esta cuenta no tiene pasivos para pagar."
+    "noPasivos": "Esta cuenta no tiene pasivos para pagar.",
+    "payAll": "Pagar todo"
   },
   "profile": {
     "title": "Mi perfil",

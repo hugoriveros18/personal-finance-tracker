@@ -159,7 +159,8 @@
     "title": "Liability payments",
     "subtitle": "Payments toward your liabilities using available balance",
     "newPayment": "New payment",
-    "noPasivos": "This account has no liabilities to pay."
+    "noPasivos": "This account has no liabilities to pay.",
+    "payAll": "Pay all"
   },
   "profile": {
     "title": "My profile",
