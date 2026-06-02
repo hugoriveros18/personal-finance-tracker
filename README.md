@@ -13,7 +13,7 @@ A full-stack, single-user personal finance tracker. Track income, expenses, savi
 - **Containerization:** docker-compose with named volumes for the database and uploaded avatars.
 - **Tests:** [Vitest](https://vitest.dev/) on both workspaces; [@testing-library/react](https://testing-library.com/) for UI tests.
 
-The full architectural rationale is in `development-plan.md`. The original architect proposals are in `.planning/`. Working with Claude on this repo? Read `CLAUDE.md`.
+The full architectural rationale and conventions are in `CLAUDE.md`.
 
 ---
 
@@ -114,8 +114,6 @@ What is **not** covered (intentionally — would need an integration harness wit
 personal-finance-tracker/
 ├── README.md
 ├── CLAUDE.md                    # canonical instructions for Claude Code in this repo
-├── development-plan.md          # Phase 1 deliverable (final architecture decisions)
-├── .planning/                   # backend + frontend architect proposals
 ├── docker-compose.yml
 ├── .env.example
 ├── package.json                 # workspaces root

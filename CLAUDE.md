@@ -13,7 +13,7 @@ Instructions for Claude when working in this repository. Read this first wheneve
 - **Mono-repo**: npm workspaces, two packages — `apps/backend`, `apps/frontend`.
 - **Containerization**: docker compose; named volumes for db data and uploaded avatars.
 
-Architecture rationale lives in `development-plan.md`. Original architect proposals are under `.planning/`.
+Architecture rationale and conventions are documented in this file.
 
 ---
 
@@ -67,8 +67,6 @@ The first time you load the frontend, you register the single user. After that, 
 personal-finance-tracker/
 ├── README.md
 ├── CLAUDE.md                    ← you are here
-├── development-plan.md          ← Phase 1 architecture decisions (authoritative)
-├── .planning/                   ← original architect proposals (historical)
 ├── docker-compose.yml
 ├── .env.example
 ├── package.json                 ← workspaces root
