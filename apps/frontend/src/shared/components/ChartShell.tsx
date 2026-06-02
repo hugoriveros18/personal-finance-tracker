@@ -1,4 +1,4 @@
-import { Card, Stack, Title, type CardProps } from '@mantine/core';
+import { Card, ScrollArea, Stack, Title, type CardProps } from '@mantine/core';
 import { ResponsiveContainer } from 'recharts';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -10,6 +10,8 @@ interface Props extends CardProps {
   emptyText?: string;
   /** Optional control row rendered below the chart, outside the fixed-height area. */
   footer?: ReactNode;
+  /** Render children directly (scrollable) instead of inside a Recharts ResponsiveContainer. */
+  raw?: boolean;
   children: ReactElement | ReactNode;
 }
 
@@ -20,6 +22,7 @@ export function ChartShell({
   empty,
   emptyText,
   footer,
+  raw,
   children,
   ...rest
 }: Props) {
@@ -48,6 +51,8 @@ export function ChartShell({
             >
               {emptyText ?? 'Sin datos'}
             </div>
+          ) : raw ? (
+            <ScrollArea h={height}>{children}</ScrollArea>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {children as ReactElement}

@@ -8,7 +8,7 @@ const dashboardQuerySchema = z.object({
   year: z.coerce.number().int().min(1900).max(3000).optional(),
 });
 
-const TOP_N = 4;
+const TOP_N = 5;
 const RECENT_LIMIT = 10;
 
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {

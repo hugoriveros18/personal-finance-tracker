@@ -47,6 +47,10 @@ export default function DashboardPage() {
   });
 
   const totalExpenses = (data?.monthSummary.egresos ?? 0) + (data?.monthSummary.pasivosNuevos ?? 0);
+  // Balance shown on the card must match the visible "Egresos" figure, which
+  // includes new liabilities — so subtract totalExpenses, not monthSummary.flow
+  // (which only nets income against pure egresos).
+  const balance = data ? (data.monthSummary.ingresos ?? 0) - totalExpenses : undefined;
   const incomeBars = (data?.trendYear.months ?? []).map((m, i) => ({
     month: m.split('-')[1],
     valor: data?.trendYear.ingresos[i] ?? 0,
@@ -114,10 +118,10 @@ export default function DashboardPage() {
               </Stack>
               <Stack gap={0}>
                 <Text size="xs" c="dimmed">
-                  {t('dashboard.newPasivos')}
+                  {t('dashboard.balance')}
                 </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.monthSummary.pasivosNuevos} fw={600} />
+                  <MoneyDisplay value={balance} signed fw={600} />
                 </Skeleton>
               </Stack>
               <Stack gap={0}>

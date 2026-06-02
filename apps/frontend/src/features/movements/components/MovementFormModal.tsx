@@ -12,7 +12,7 @@ import { createMovement, movementKeys, updateMovement } from '../api/movements';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { getApiErrorMessage } from '@/shared/api/client';
 import type { Movement, MovementFlujo } from '@/shared/types/domain';
-import { toISODate } from '@/shared/lib/dates';
+import { parseApiDate, toISODate } from '@/shared/lib/dates';
 
 const schema = z.object({
   descripcion: z.string().min(1).max(200),
@@ -53,7 +53,7 @@ function FormBody({
     defaultValues: initial
       ? {
           descripcion: initial.descripcion,
-          fecha: new Date(initial.fecha),
+          fecha: parseApiDate(initial.fecha),
           flujo: initial.flujo,
           valor: initial.valor,
           cuentaEmisoraId: initial.cuentaEmisoraId,

@@ -33,3 +33,15 @@ export function toISODate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * Parse an API date string ("YYYY-MM-DD" or full ISO like
+ * "2026-05-30T00:00:00.000Z") as LOCAL midnight, taking only the calendar-day
+ * part. This keeps the <DatePickerInput> (which works in local time) showing
+ * the same day the backend stored — `new Date(isoString)` would interpret the
+ * UTC midnight as the previous day in negative-offset timezones (e.g. UTC-5).
+ */
+export function parseApiDate(s: string): Date {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}

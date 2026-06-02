@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatMonth, toISODate } from './dates';
+import { formatDate, formatMonth, parseApiDate, toISODate } from './dates';
 
 describe('formatDate', () => {
   it('formats DD/MM/YYYY for Spanish', () => {
@@ -38,5 +38,26 @@ describe('toISODate', () => {
   it('zero-pads month and day', () => {
     const d = new Date(2026, 0, 5);
     expect(toISODate(d)).toBe('2026-01-05');
+  });
+});
+
+describe('parseApiDate', () => {
+  it('parses a full ISO UTC-midnight string to the same local calendar day', () => {
+    // Regression: new Date("2026-05-30T00:00:00.000Z") shifts to May 29 in UTC-5.
+    const d = parseApiDate('2026-05-30T00:00:00.000Z');
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(4); // May (0-indexed)
+    expect(d.getDate()).toBe(30);
+  });
+
+  it('parses a plain YYYY-MM-DD string', () => {
+    const d = parseApiDate('2026-01-05');
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(0);
+    expect(d.getDate()).toBe(5);
+  });
+
+  it('round-trips with toISODate (the edit-modal path)', () => {
+    expect(toISODate(parseApiDate('2026-05-30T00:00:00.000Z'))).toBe('2026-05-30');
   });
 });

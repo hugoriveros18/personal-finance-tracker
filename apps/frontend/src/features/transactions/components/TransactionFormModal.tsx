@@ -17,7 +17,7 @@ import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { categoryKeys, listCategories } from '@/features/categories/api/categories';
 import { getApiErrorMessage } from '@/shared/api/client';
 import type { Transaction, TransactionTipo } from '@/shared/types/domain';
-import { toISODate } from '@/shared/lib/dates';
+import { parseApiDate, toISODate } from '@/shared/lib/dates';
 
 const schema = z.object({
   descripcion: z.string().min(1).max(200),
@@ -61,7 +61,7 @@ function FormBody({
     defaultValues: initial
       ? {
           descripcion: initial.descripcion,
-          fecha: new Date(initial.fecha),
+          fecha: parseApiDate(initial.fecha),
           tipo: initial.tipo,
           valor: initial.valor,
           accountId: initial.accountId,

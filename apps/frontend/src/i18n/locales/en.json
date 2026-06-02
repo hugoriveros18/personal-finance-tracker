@@ -86,6 +86,7 @@
     "income": "Income",
     "expenses": "Expenses",
     "newPasivos": "New liabilities",
+    "balance": "Balance",
     "ahorroVariacion": "Savings change",
     "ahorroVariacionHint": "Net effect of transfers between available and savings this month",
     "disponible": "Available",

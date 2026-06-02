@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Group, SegmentedControl, Text } from '@mantine/core';
+import { Box, Group, SegmentedControl, Table, Text } from '@mantine/core';
 import { MonthPickerInput } from '@mantine/dates';
-import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChartShell } from '@/shared/components/ChartShell';
-import { chartTooltipProps } from '@/shared/components/chartTooltip';
 import { useFormatters } from '@/shared/hooks/useFormatters';
 import { dashboardKeys, fetchDashboard } from '@/features/dashboard/api/dashboard';
+import { categoryKeys, listCategories } from '@/features/categories/api/categories';
 import { colorAt } from '@/shared/lib/chartColors';
 
 export function CategoryDistributionChart() {
@@ -20,13 +19,22 @@ export function CategoryDistributionChart() {
     queryKey: dashboardKeys.byMonth(month),
     queryFn: () => fetchDashboard({ month, year: Number(month.split('-')[0]) }),
   });
+  const categoriesQ = useQuery({ queryKey: categoryKeys.all, queryFn: () => listCategories() });
 
-  const slices = (view === 'egreso' ? data?.byCategoryMonth.egreso : data?.byCategoryMonth.ingreso) ?? [];
-  const total = slices.reduce((acc, s) => acc + s.total, 0);
-  const empty = slices.length === 0;
+  const monthByCat = view === 'egreso' ? data?.byCategoryMonth.egreso : data?.byCategoryMonth.ingreso;
+  // Show EVERY category of the selected tipo — including those with no activity
+  // this month (total 0) — not just the ones that had transactions.
+  const totalsById = new Map((monthByCat ?? []).map((s) => [s.categoryId, s.total] as const));
+  const rows = (categoriesQ.data ?? [])
+    .filter((c) => c.tipo === view)
+    .map((c) => ({ categoryId: c.id, nombre: c.nombre, total: totalsById.get(c.id) ?? 0 }))
+    .sort((a, b) => b.total - a.total);
+  const total = rows.reduce((acc, s) => acc + s.total, 0);
+  const empty = rows.length === 0;
 
   return (
     <ChartShell
+      raw
       title={t('dashboard.topCategoriesMonth')}
       subtitle={f.month(month)}
       empty={empty}
@@ -52,32 +60,35 @@ export function CategoryDistributionChart() {
         </Group>
       }
     >
-      <PieChart>
-        <Pie
-          data={slices}
-          dataKey="total"
-          nameKey="nombre"
-          innerRadius="50%"
-          outerRadius="75%"
-          paddingAngle={2}
-        >
-          {slices.map((_, i) => (
-            <Cell key={i} fill={colorAt(i)} />
+      <Table highlightOnHover verticalSpacing="xs" stickyHeader>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>{t('common.category')}</Table.Th>
+            <Table.Th ta="right">{t('common.amount')}</Table.Th>
+            <Table.Th ta="right">%</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {rows.map((s, i) => (
+            <Table.Tr key={s.categoryId}>
+              <Table.Td>
+                <Group gap="xs" wrap="nowrap">
+                  <Box
+                    w={10}
+                    h={10}
+                    style={{ borderRadius: 2, background: colorAt(i), flexShrink: 0 }}
+                  />
+                  <Text size="sm">{s.nombre}</Text>
+                </Group>
+              </Table.Td>
+              <Table.Td ta="right">{f.money(s.total)}</Table.Td>
+              <Table.Td ta="right">
+                {total ? ((s.total / total) * 100).toFixed(1) : '0.0'}%
+              </Table.Td>
+            </Table.Tr>
           ))}
-        </Pie>
-        <Tooltip
-          {...chartTooltipProps}
-          formatter={(v: number, n: string) => [
-            `${f.money(v)} (${total ? ((v / total) * 100).toFixed(1) : 0}%)`,
-            n,
-          ]}
-        />
-        <Legend
-          verticalAlign="bottom"
-          iconType="square"
-          wrapperStyle={{ paddingTop: 8, fontSize: 12 }}
-        />
-      </PieChart>
+        </Table.Tbody>
+      </Table>
     </ChartShell>
   );
 }

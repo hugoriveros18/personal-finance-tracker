@@ -86,6 +86,7 @@
     "income": "Ingresos",
     "expenses": "Egresos",
     "newPasivos": "Nuevos pasivos",
+    "balance": "Balance",
     "ahorroVariacion": "Variación de ahorro",
     "ahorroVariacionHint": "Resultado neto de los movimientos entre disponible y ahorro este mes",
     "disponible": "Disponible",
