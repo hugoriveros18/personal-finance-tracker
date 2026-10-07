@@ -28,8 +28,8 @@ import { useNavigate } from 'react-router-dom';
 import { logout } from '@/features/auth/api/auth';
 
 const profileSchema = z.object({
-  nombre: z.string().min(1).max(80),
-  apellidos: z.string().min(1).max(120),
+  firstName: z.string().min(1).max(80),
+  lastName: z.string().min(1).max(120),
   email: z.string().email().max(254),
 });
 
@@ -66,8 +66,8 @@ export default function ProfilePage() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      nombre: user?.nombre ?? '',
-      apellidos: user?.apellidos ?? '',
+      firstName: user?.firstName ?? '',
+      lastName: user?.lastName ?? '',
       email: user?.email ?? '',
     },
   });
@@ -145,7 +145,7 @@ export default function ProfilePage() {
   };
 
   if (!user) return null;
-  const initials = (user.nombre[0] ?? '') + (user.apellidos[0] ?? '');
+  const initials = (user.firstName[0] ?? '') + (user.lastName[0] ?? '');
 
   return (
     <Page title={t('profile.title')} description={t('profile.subtitle')}>
@@ -158,7 +158,11 @@ export default function ProfilePage() {
                 {initials}
               </Avatar>
               <Stack gap="xs">
-                <FileButton resetRef={fileResetRef} onChange={onPickAvatar} accept="image/png,image/jpeg,image/webp">
+                <FileButton
+                  resetRef={fileResetRef}
+                  onChange={onPickAvatar}
+                  accept="image/png,image/jpeg,image/webp"
+                >
                   {(props) => <Button {...props}>{t('profile.uploadAvatar')}</Button>}
                 </FileButton>
                 {user.avatarPath && (
@@ -195,8 +199,8 @@ export default function ProfilePage() {
                 value={language}
                 onChange={(v) => setLanguage(v as 'es' | 'en')}
                 data={[
-                  { value: 'es', label: 'Español' },
-                  { value: 'en', label: 'English' },
+                  { value: 'es', label: t('languages.es') },
+                  { value: 'en', label: t('languages.en') },
                 ]}
               />
             </div>
@@ -213,14 +217,14 @@ export default function ProfilePage() {
               <Stack>
                 <Group grow>
                   <TextInput
-                    label={t('auth.nombre')}
-                    {...profileForm.register('nombre')}
-                    error={profileForm.formState.errors.nombre?.message}
+                    label={t('auth.firstName')}
+                    {...profileForm.register('firstName')}
+                    error={profileForm.formState.errors.firstName?.message}
                   />
                   <TextInput
-                    label={t('auth.apellidos')}
-                    {...profileForm.register('apellidos')}
-                    error={profileForm.formState.errors.apellidos?.message}
+                    label={t('auth.lastName')}
+                    {...profileForm.register('lastName')}
+                    error={profileForm.formState.errors.lastName?.message}
                   />
                 </Group>
                 <TextInput

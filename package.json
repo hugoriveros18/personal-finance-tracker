@@ -8,17 +8,26 @@
   ],
   "scripts": {
     "dev": "echo 'Use docker compose up for full stack, or run apps individually with npm -w apps/<name> run dev'",
-    "build": "npm -ws --if-present run build",
-    "lint": "npm -ws --if-present run lint",
-    "typecheck": "npm -ws --if-present run typecheck",
-    "test": "npm -ws --if-present run test",
+    "build": "npm --workspaces --if-present run build",
+    "lint": "npm --workspaces --if-present run lint && eslint tests/e2e playwright.config.ts",
+    "typecheck": "npm --workspaces --if-present run typecheck && tsc -p tests/e2e/tsconfig.json --noEmit",
+    "test": "npm --workspaces --if-present run test",
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down",
-    "compose:logs": "docker compose logs -f"
+    "compose:logs": "docker compose logs -f",
+    "test:integration": "npm -w apps/backend run test:integration",
+    "test:all": "npm test && npm run test:integration && npm run test:e2e",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:e2e:ui": "node tests/e2e/run.mjs --ui"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.3.3",
     "typescript": "^5.5.4",
-    "prettier": "^3.3.3"
+    "typescript-eslint": "^8.71.1"
   },
   "engines": {
     "node": ">=20.0.0"

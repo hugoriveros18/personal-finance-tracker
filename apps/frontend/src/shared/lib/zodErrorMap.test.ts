@@ -2,35 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import i18n from 'i18next';
 import { buildZodErrorMap } from './zodErrorMap';
+import es from '@/i18n/locales/es.json';
+import en from '@/i18n/locales/en.json';
 
 beforeAll(async () => {
   await i18n.init({
     lng: 'es',
     fallbackLng: 'es',
-    resources: {
-      es: {
-        translation: {
-          validation: {
-            required: 'Este campo es obligatorio',
-            stringMin: 'Mínimo {{min}} caracteres',
-            stringMax: 'Máximo {{max}} caracteres',
-            numberMin: 'El valor mínimo es {{min}}',
-            numberMax: 'El valor máximo es {{max}}',
-            email: 'Correo inválido',
-            invalid: 'Valor inválido',
-          },
-        },
-      },
-      en: {
-        translation: {
-          validation: {
-            required: 'This field is required',
-            stringMin: 'At least {{min}} characters',
-            email: 'Invalid email',
-          },
-        },
-      },
-    },
+    resources: { es: { translation: es }, en: { translation: en } },
     interpolation: { escapeValue: false },
   });
   z.setErrorMap(buildZodErrorMap(i18n));
@@ -42,34 +21,34 @@ afterAll(() => {
 });
 
 describe('zodErrorMap (es)', () => {
-  it('maps "" to "Este campo es obligatorio" via min(1) on string', () => {
+  it('translates empty strings as required fields', () => {
     const r = z.string().min(1).safeParse('');
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0]?.message).toBe('Este campo es obligatorio');
   });
 
-  it('maps undefined required string to "Este campo es obligatorio"', () => {
+  it('translates missing required strings', () => {
     const r = z.string().safeParse(undefined);
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0]?.message).toBe('Este campo es obligatorio');
   });
 
-  it('maps min(N) for N>1 to "Mínimo N caracteres"', () => {
+  it('translates the minimum string length', () => {
     const r = z.string().min(8).safeParse('abc');
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0]?.message).toBe('Mínimo 8 caracteres');
   });
 
-  it('maps invalid email to "Correo inválido"', () => {
+  it('translates invalid email errors', () => {
     const r = z.string().email().safeParse('not-an-email');
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0]?.message).toBe('Correo inválido');
   });
 
   it('preserves custom messages set on the schema', () => {
-    const r = z.number().max(100, 'Excede el disponible').safeParse(200);
+    const r = z.number().max(100, 'Exceeds available balance').safeParse(200);
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues[0]?.message).toBe('Excede el disponible');
+    if (!r.success) expect(r.error.issues[0]?.message).toBe('Exceeds available balance');
   });
 });
 

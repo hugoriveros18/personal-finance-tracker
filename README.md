@@ -2,7 +2,7 @@
 
 A full-stack, single-user personal finance tracker. Track income, expenses, savings, and liabilities across multiple accounts, with an interactive dashboard, light/dark theme, Spanish/English UI, and full data export/import. Runs entirely on your own machine via Docker.
 
-> **Currency:** COP (Colombian Pesos) — stored as integer centavos in the DB, formatted as `$1.250.000` for whole-peso amounts and `$1.250.000,50` when there are cents (es-CO: `,` decimal, `.` thousands).
+> **Currency:** COP (Colombian Pesos) — stored as integer cents in the DB, formatted as `$1.250.000` for whole-peso amounts and `$1.250.000,50` when there are cents (es-CO: `,` decimal, `.` thousands).
 
 ---
 
@@ -96,15 +96,33 @@ npm -w apps/frontend run test
 npm -w apps/frontend run test:watch
 ```
 
-What is covered:
+The test layers are:
 
-- **Backend** — pure delta functions for transactions / movements / liability payments (the heart of the balance model), Zod request schemas, date and pagination helpers, error factories.
-- **Frontend** — money formatter (`formatCop`/`parseCop`), date helpers, `useUrlFilters` hook, key components (`<MoneyInput>`, `<EmptyState>`).
+- **Unit tests:** domain deltas, request schemas, dates, pagination, money formatting and serialization.
+- **Component tests:** account, transaction, movement and liability payment forms; English request payloads; Spanish/English labels and validation; read-only views and category preservation while loading.
+- **Locale tests:** matching keys and interpolation parameters, all static translation references, language preference changes and translated validation.
+- **Integration tests:** real HTTP requests through Fastify injection against disposable PostgreSQL 16, fresh migration installation and Prisma schema drift detection, database constraints and triggers, user isolation, reverse/reapply balance mutations, filtering, dashboard totals and backup restoration.
 
-What is **not** covered (intentionally — would need an integration harness with a real DB):
+```bash
+npm run test:integration  # fresh temporary PostgreSQL, migrations, HTTP/database tests
+npm run test:e2e          # real Chromium, frontend, API and disposable PostgreSQL
+npm run test:e2e:ui       # interactive Playwright runner
+npm run test:all          # unit/component, integration and browser E2E tests
+```
 
-- End-to-end HTTP flows against Postgres.
-- Full-page rendering with the live API.
+The integration runner uses `embedded-postgres`, pinned to PostgreSQL 16. It requires a non-root OS user and install scripts enabled, but no Docker or existing database. Each run chooses a free local port, creates a temporary cluster and upload directory, and stops/removes them in a `finally` block. It overrides `DATABASE_URL` with its own temporary database; it never resets the development database. Files run sequentially, and each test clears its own test data and builds a fresh API instance. Integration tests and configuration are included in the backend typecheck and lint commands.
+
+CI runs lint, typecheck, all test layers and production builds only when a pull request is opened (`pull_request: types: [opened]`). Pushing later commits or reopening a pull request does not trigger another run; previous CI results apply to the revision that was tested. Component tests mock feature API clients; integration tests exercise the real API/database; browser E2E tests exercise the complete application in Chromium.
+
+### Browser E2E workflow (Playwright)
+
+- One-time setup after `npm install`: run `npm -w apps/backend run prisma:generate` and `npx playwright install --with-deps chromium` (browser/system dependencies; Linux package installation may require administrator privileges).
+- Run `npm run test:e2e` from the repository root. The runner starts disposable PostgreSQL 16, deploys migrations and starts the real API and Vite on free loopback ports. It overrides database/server settings with test-only values, then stops services and removes the temporary database/uploads. No Docker, `.env` edits or development database reset is needed. Run as a non-root OS user with npm install scripts enabled.
+- Use `npm run test:e2e:ui` for interactive debugging, or `npm run test:e2e -- --headed` to watch Chromium. Pass Playwright filters through the runner, for example `npm run test:e2e -- --grep "Spanish expense"`. Do not invoke `npx playwright test` directly: it bypasses isolated environment setup.
+- Specs live in `tests/e2e/*.spec.ts`. Start each independent scenario with fresh browser state and create uniquely named users/data if adding scenarios. Tests share a disposable database and run sequentially; do not assume the database is empty after another scenario. The finance scenario verifies Spanish forms, English HTTP payloads, integer cents in PostgreSQL, rendered balances, English translation and preference persistence. The access scenario verifies redirect to login.
+- During development, run focused unit/component tests. For changes crossing UI/API boundaries, authentication, balances or translations, run the affected E2E scenarios and update them where behavior changes. Before handing off application changes, run `npm run lint`, `npm run typecheck`, `npm run test:all` and `npm run build`; `test:all` includes unit/component, integration and E2E layers. For documentation-only edits, check affected commands/references without rerunning the application suites.
+- Evidence is generated under ignored `test-results/` and `playwright-report/`. Successful finance runs attach `transactions-es.png`, `transactions-en.png`, `accounts-en.png` and a JSON verification summary to the HTML report. Failures preserve screenshots, video and traces; server logs are under `test-results/e2e-server/`. View the report with `npx playwright show-report`. These are evidence captures, not visual snapshot comparisons.
+- CI runs only when a PR is opened, not on pushes, subsequent commits or reopened PRs. CI installs Chromium/system dependencies, runs all layers and uploads the report/results as `playwright-results` for 14 days, including on failures. For UI PRs, attach representative current screenshots to the PR description and link the CI artifact/run for reproducible evidence. Do not commit generated images or reports. Creating/publishing a PR still requires the user's authorization.
 
 ---
 
@@ -153,18 +171,19 @@ personal-finance-tracker/
 
 ## Data model
 
-| Entity | Notes |
-|---|---|
-| `user` | nombre, apellidos, email (unique), avatarPath, preferredLanguage, preferredTheme |
-| `category` | tipo: `ingreso` \| `egreso` |
-| `account` | disponible, ahorro, pasivos, total = disponible + ahorro |
-| `transaction` | tipo: `ingreso` \| `egreso` \| `pasivo`. Affects account balance per type |
-| `movement` | flujo: `INTER_DISPONIBLE` \| `INTRA_DISPONIBLE_TO_AHORRO` \| `INTRA_AHORRO_TO_DISPONIBLE` |
-| `liability_payment` | Reduces both `disponible` and `pasivos` of one account. Excluded from expense aggregations |
+| Entity              | Notes                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `user`              | firstName, lastName, email (unique), avatarPath, preferredLanguage, preferredTheme                          |
+| `category`          | type: `income` \| `expense`                                                                                 |
+| `account`           | availableBalance, savingsBalance, liabilitiesBalance, total = availableBalance + savingsBalance             |
+| `transaction`       | type: `income` \| `expense` \| `liability`. Affects account balance per type                                |
+| `movement`          | flow: `INTER_AVAILABLE` \| `INTRA_AVAILABLE_TO_SAVINGS` \| `INTRA_SAVINGS_TO_AVAILABLE`                     |
+| `liability_payment` | Reduces both `availableBalance` and `liabilitiesBalance` of one account. Excluded from expense aggregations |
 
 The Postgres schema includes:
-- CHECK constraints: `disponible >= 0`, `ahorro >= 0`, `pasivos >= 0`, `total = disponible + ahorro`, all amounts > 0, movement flow shape.
-- Triggers: enforce `transaction.tipo` ↔ `category.tipo` coherence; prevent changing `category.tipo` while transactions reference it.
+
+- CHECK constraints: `availableBalance >= 0`, `savingsBalance >= 0`, `liabilitiesBalance >= 0`, `total = availableBalance + savingsBalance`, all amounts > 0, movement flow shape.
+- Triggers: enforce `transaction.type` ↔ `category.type` coherence; prevent changing `category.type` while transactions reference it.
 
 All balance mutations run inside serializable Prisma transactions with `SELECT ... FOR UPDATE` locks on every touched account row.
 
@@ -172,14 +191,14 @@ All balance mutations run inside serializable Prisma transactions with `SELECT .
 
 ## Key business rules
 
-- **Ingreso:** `account.disponible += valor`. Category must be tipo `ingreso`.
-- **Egreso:** `account.disponible -= valor`. Category must be tipo `egreso`. Cannot push disponible below 0.
-- **Pasivo:** `account.pasivos += valor`. Category must be tipo `egreso` (it's a credit-card-like purchase).
-- **Liability payment:** `account.disponible -= valor` and `account.pasivos -= valor`. NOT counted as an expense in totals or charts.
-- **Movement (inter-account):** `disponible(emisora) -= valor`, `disponible(receptora) += valor`.
-- **Movement (intra-account):** moves money between `disponible` and `ahorro` on the same account.
-- **Edits & deletes:** apply via *reverse + reapply* inside one transaction. CHECK constraints reject anything that would push a balance negative.
-- **Initial balances:** set only at account creation. `PATCH /accounts/:id` only allows `nombre`.
+- **Income:** `account.availableBalance += amount`. Category must be type `income`.
+- **Expense:** `account.availableBalance -= amount`. Category must be type `expense`. Cannot push availableBalance below 0.
+- **Liability:** `account.liabilitiesBalance += amount`. Category must be type `expense` (it's a credit-card-like purchase).
+- **Liability payment:** `account.availableBalance -= amount` and `account.liabilitiesBalance -= amount`. NOT counted as an expense in totals or charts.
+- **Movement (inter-account):** `availableBalance(source) -= amount`, `availableBalance(destination) += amount`.
+- **Movement (intra-account):** moves money between `availableBalance` and `savingsBalance` on the same account.
+- **Edits & deletes:** apply via _reverse + reapply_ inside one transaction. CHECK constraints reject anything that would push a balance negative.
+- **Initial balances:** set only at account creation. `PATCH /accounts/:id` only allows `name`.
 
 ---
 
@@ -207,13 +226,17 @@ docker compose exec backend npx prisma studio
 
 ## Backup / restore
 
-- **Export:** `Backup` page → `Exportar`. Downloads a JSON file with all your data.
+- **Export:** `Backup` page → `Export data`. Downloads a JSON file with all your data.
 - **Import:** `Backup` page → upload the JSON.
   - `replace` mode wipes current data and re-creates everything from the file.
   - `merge-fail-on-conflict` aborts on name collisions.
   - `dry run` validates without writing.
 
-The exporter writes events in chronological order so the importer's chronological replay never temporarily violates `disponible >= 0`.
+Exports use `$schema: "pft-export-v2"`. Keys and enum values are English in every locale; choosing Spanish only changes presentation. Names and descriptions entered by users are preserved as entered. Amounts are integer COP cents (1 COP = 100 cents). The exporter reconstructs initial balances; the importer replays events by date inside a serializable transaction.
+
+The English standardization intentionally starts a new migration history (`20261007000000_init`). It targets a fresh database and does not provide adapters for earlier API fields, URL parameters or backup formats. If a local development database already has the previous migration history, recreate that empty development database before starting the new version. Database reset commands delete data and must only be used on a database you intend to discard.
+
+API and Prisma fields use `camelCase` (`firstName`, `availableBalance`, `sourceAccountId`); mapped PostgreSQL columns use `snake_case` (`first_name`, `available_balance`, `source_account_id`). Filters use `types`, `flows`, `amountMin`, `amountMax`, `sourceAccountIds` and `destinationAccountIds`. Sorts use English fields such as `-date` and `-amount`.
 
 ---
 

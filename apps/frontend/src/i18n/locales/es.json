@@ -11,7 +11,9 @@
     "arrayMin": "Selecciona al menos {{min}}",
     "arrayMax": "Selecciona como máximo {{max}}",
     "email": "Correo inválido",
-    "invalid": "Valor inválido"
+    "invalid": "Valor inválido",
+    "exceedsAvailableBalance": "Excede el disponible",
+    "exceedsLiabilitiesBalance": "Excede los pasivos"
   },
   "nav": {
     "dashboard": "Panel",
@@ -32,8 +34,7 @@
     "newPassword": "Nueva contraseña",
     "currentPassword": "Contraseña actual",
     "confirmPassword": "Confirmar contraseña",
-    "nombre": "Nombre",
-    "apellidos": "Apellidos",
+    "lastName": "Apellidos",
     "haveAccount": "¿Ya tienes cuenta?",
     "noAccount": "¿No tienes cuenta?",
     "signInTitle": "Bienvenido de vuelta",
@@ -41,7 +42,8 @@
     "submit": "Continuar",
     "passwordsDontMatch": "Las contraseñas no coinciden",
     "registrationDisabled": "El registro está deshabilitado en este servidor",
-    "invalidCredentials": "Correo o contraseña incorrectos"
+    "invalidCredentials": "Correo o contraseña incorrectos",
+    "firstName": "Nombre"
   },
   "common": {
     "save": "Guardar",
@@ -76,7 +78,14 @@
     "account": "Cuenta",
     "name": "Nombre",
     "min": "Mín.",
-    "max": "Máx."
+    "max": "Máx.",
+    "recordsPerPage": "Registros por página",
+    "pagination": {
+      "first": "Primera página",
+      "last": "Última página",
+      "previous": "Página anterior",
+      "next": "Página siguiente"
+    }
   },
   "dashboard": {
     "title": "Panel",
@@ -85,17 +94,17 @@
     "globalSnapshot": "Resumen global (hoy)",
     "income": "Ingresos",
     "expenses": "Egresos",
-    "newPasivos": "Nuevos pasivos",
+    "newLiabilities": "Nuevos pasivos",
     "balance": "Balance",
-    "ahorroVariacion": "Variación de ahorro",
-    "ahorroVariacionHint": "Resultado neto de los movimientos entre disponible y ahorro este mes",
-    "disponible": "Disponible",
-    "ahorro": "Ahorro",
-    "pasivos": "Pasivos",
+    "savingsChange": "Variación de ahorro",
+    "savingsChangeHint": "Resultado neto de los movimientos entre disponible y ahorro este mes",
+    "availableBalance": "Disponible",
+    "savingsBalance": "Ahorro",
+    "liabilitiesBalance": "Pasivos",
     "netWorth": "Patrimonio",
     "incomeMonths": "Ingresos por mes",
     "expensesMonths": "Egresos por mes (egresos + nuevos pasivos)",
-    "ahorroVariacionMonths": "Variación de ahorro por mes",
+    "savingsChangeMonths": "Variación de ahorro por mes",
     "topCategoriesMonth": "Top categorías del mes",
     "topCategoriesYear": "Top categorías del año",
     "noCategoryData": "Sin movimientos en este periodo"
@@ -108,10 +117,10 @@
     "initialBalancesHint": "Estos valores no se podrán modificar luego.",
     "payLiability": "Pagar pasivo",
     "totalsBar": {
-      "disponible": "Disponible total",
-      "ahorro": "Ahorro total",
-      "pasivos": "Pasivos totales",
-      "patrimonio": "Patrimonio"
+      "availableBalance": "Disponible total",
+      "savingsBalance": "Ahorro total",
+      "liabilitiesBalance": "Pasivos totales",
+      "netWorth": "Patrimonio"
     },
     "delete": "Eliminar cuenta",
     "deleteHint": "Solo se pueden eliminar cuentas sin transacciones, movimientos ni pagos de pasivo.",
@@ -125,17 +134,17 @@
     "title": "Categorías",
     "subtitle": "Categorías de ingresos y egresos",
     "newCategory": "Nueva categoría",
-    "tipoIngreso": "Ingreso",
-    "tipoEgreso": "Egreso",
+    "income": "Ingreso",
+    "expense": "Egreso",
     "categoryTrend": "Tendencia mensual por categoría"
   },
   "transactions": {
     "title": "Transacciones",
     "subtitle": "Ingresos, egresos y nuevos pasivos",
     "newTransaction": "Nueva transacción",
-    "tipoIngreso": "Ingreso",
-    "tipoEgreso": "Egreso",
-    "tipoPasivo": "Pasivo",
+    "income": "Ingreso",
+    "expense": "Egreso",
+    "liability": "Pasivo",
     "filters": {
       "byCategory": "Categorías",
       "byAccount": "Cuentas",
@@ -148,10 +157,10 @@
     "title": "Movimientos",
     "subtitle": "Transferencias entre cuentas y entre disponible/ahorro",
     "newMovement": "Nuevo movimiento",
-    "flujo": {
-      "INTER_DISPONIBLE": "Entre cuentas",
-      "INTRA_DISPONIBLE_TO_AHORRO": "Disponible → Ahorro",
-      "INTRA_AHORRO_TO_DISPONIBLE": "Ahorro → Disponible"
+    "flow": {
+      "INTER_AVAILABLE": "Entre cuentas",
+      "INTRA_AVAILABLE_TO_SAVINGS": "Disponible → Ahorro",
+      "INTRA_SAVINGS_TO_AVAILABLE": "Ahorro → Disponible"
     },
     "from": "Desde cuenta",
     "to": "Hacia cuenta"
@@ -160,7 +169,7 @@
     "title": "Pagos de pasivo",
     "subtitle": "Pagos a tus pasivos usando disponible",
     "newPayment": "Nuevo pago",
-    "noPasivos": "Esta cuenta no tiene pasivos para pagar.",
+    "noLiabilities": "Esta cuenta no tiene pasivos para pagar.",
     "payAll": "Pagar todo"
   },
   "profile": {
@@ -191,15 +200,20 @@
     "importDone": "Importación completada"
   },
   "errors": {
-    "INSUFFICIENT_DISPONIBLE": "Saldo disponible insuficiente",
+    "INSUFFICIENT_AVAILABLE_BALANCE": "Saldo disponible insuficiente",
     "WOULD_VIOLATE_INVARIANT": "Esta operación dejaría una cuenta en saldo negativo",
-    "CATEGORY_TIPO_MISMATCH": "El tipo de la categoría no coincide con el tipo de la transacción",
-    "INVALID_FLUJO_SHAPE": "Las cuentas no coinciden con el tipo de movimiento",
+    "CATEGORY_TYPE_MISMATCH": "El tipo de la categoría no coincide con el tipo de la transacción",
+    "INVALID_FLOW_SHAPE": "Las cuentas no coinciden con el tipo de movimiento",
     "EMAIL_TAKEN": "Este correo ya está registrado",
     "CONFLICT": "Recurso en conflicto",
     "IN_USE": "El recurso está en uso y no se puede eliminar",
     "GUARD_REJECTED": "Operación rechazada por una validación de la base de datos",
     "VALIDATION_ERROR": "Datos inválidos",
-    "FORBIDDEN": "Acción no permitida"
+    "FORBIDDEN": "Acción no permitida",
+    "CONCURRENT_MODIFICATION": "Otra operación cambió el saldo. Intenta nuevamente."
+  },
+  "languages": {
+    "es": "Español",
+    "en": "English"
   }
 }

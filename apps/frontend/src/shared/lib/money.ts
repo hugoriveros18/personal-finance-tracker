@@ -1,5 +1,5 @@
-// Money is exchanged with the backend as INTEGER CENTAVOS (BIGINT in the DB).
-// 1 COP = 100 centavos. Display rule (option B): show 2 decimals only when
+// Money is exchanged with the backend as INTEGER CENTS (BIGINT in the DB).
+// 1 COP = 100 cents. Display rule (option B): show 2 decimals only when
 // the value isn't a whole peso, so "$1.250.000" stays terse for round numbers
 // and "$1.250.000,50" shows the cents when present.
 
@@ -23,10 +23,10 @@ function stripNbsp(parts: Intl.NumberFormatPart[]): string {
     .join('');
 }
 
-export function formatCop(centavos: number | null | undefined): string {
-  if (centavos === null || centavos === undefined || Number.isNaN(centavos)) return '$0';
-  const pesos = centavos / 100;
-  const fmt = centavos % 100 === 0 ? fmtNoDecimals : fmtWithDecimals;
+export function formatCop(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined || Number.isNaN(cents)) return '$0';
+  const pesos = cents / 100;
+  const fmt = cents % 100 === 0 ? fmtNoDecimals : fmtWithDecimals;
   return stripNbsp(fmt.formatToParts(pesos));
 }
 

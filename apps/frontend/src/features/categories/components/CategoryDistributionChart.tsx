@@ -14,20 +14,21 @@ export function CategoryDistributionChart() {
   const f = useFormatters();
   const [monthDate, setMonthDate] = useState<Date>(new Date());
   const month = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
-  const [view, setView] = useState<'egreso' | 'ingreso'>('egreso');
+  const [view, setView] = useState<'expense' | 'income'>('expense');
   const { data } = useQuery({
     queryKey: dashboardKeys.byMonth(month),
     queryFn: () => fetchDashboard({ month, year: Number(month.split('-')[0]) }),
   });
   const categoriesQ = useQuery({ queryKey: categoryKeys.all, queryFn: () => listCategories() });
 
-  const monthByCat = view === 'egreso' ? data?.byCategoryMonth.egreso : data?.byCategoryMonth.ingreso;
-  // Show EVERY category of the selected tipo — including those with no activity
+  const monthByCat =
+    view === 'expense' ? data?.byCategoryMonth.expense : data?.byCategoryMonth.income;
+  // Show EVERY category of the selected type — including those with no activity
   // this month (total 0) — not just the ones that had transactions.
   const totalsById = new Map((monthByCat ?? []).map((s) => [s.categoryId, s.total] as const));
   const rows = (categoriesQ.data ?? [])
-    .filter((c) => c.tipo === view)
-    .map((c) => ({ categoryId: c.id, nombre: c.nombre, total: totalsById.get(c.id) ?? 0 }))
+    .filter((c) => c.type === view)
+    .map((c) => ({ categoryId: c.id, name: c.name, total: totalsById.get(c.id) ?? 0 }))
     .sort((a, b) => b.total - a.total);
   const total = rows.reduce((acc, s) => acc + s.total, 0);
   const empty = rows.length === 0;
@@ -44,10 +45,10 @@ export function CategoryDistributionChart() {
           <SegmentedControl
             size="xs"
             value={view}
-            onChange={(v) => setView(v as 'egreso' | 'ingreso')}
+            onChange={(v) => setView(v as 'expense' | 'income')}
             data={[
-              { value: 'egreso', label: t('categories.tipoEgreso') },
-              { value: 'ingreso', label: t('categories.tipoIngreso') },
+              { value: 'expense', label: t('categories.expense') },
+              { value: 'income', label: t('categories.income') },
             ]}
           />
           <MonthPickerInput
@@ -78,7 +79,7 @@ export function CategoryDistributionChart() {
                     h={10}
                     style={{ borderRadius: 2, background: colorAt(i), flexShrink: 0 }}
                   />
-                  <Text size="sm">{s.nombre}</Text>
+                  <Text size="sm">{s.name}</Text>
                 </Group>
               </Table.Td>
               <Table.Td ta="right">{f.money(s.total)}</Table.Td>

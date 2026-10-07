@@ -1,3 +1,4 @@
+import { getTableLabels } from '@/shared/lib/tableLabels';
 import { useMemo, useState } from 'react';
 import { ActionIcon, Group, Menu, Text } from '@mantine/core';
 import { DataTable } from 'mantine-datatable';
@@ -41,7 +42,7 @@ export function LiabilityPaymentsTable(props: Props) {
     placeholderData: (prev) => prev,
   });
   const accountsQ = useQuery({ queryKey: accountKeys.all, queryFn: listAccounts });
-  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.nombre ?? '—';
+  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.name ?? '—';
 
   const removeMut = useMutation({
     mutationFn: deleteLiabilityPayment,
@@ -58,6 +59,7 @@ export function LiabilityPaymentsTable(props: Props) {
 
   return (
     <DataTable<LiabilityPayment>
+      {...getTableLabels(t)}
       withTableBorder
       borderRadius="md"
       striped
@@ -73,21 +75,21 @@ export function LiabilityPaymentsTable(props: Props) {
       recordsPerPageOptions={[10, 25, 50, 100]}
       onRecordsPerPageChange={setPageSize}
       columns={[
-        { accessor: 'fecha', title: t('common.date'), render: (r) => f.date(r.fecha), width: 110 },
-        { accessor: 'descripcion', title: t('common.description') },
+        { accessor: 'date', title: t('common.date'), render: (r) => f.date(r.date), width: 110 },
+        { accessor: 'description', title: t('common.description') },
         {
           accessor: 'accountId',
           title: t('common.account'),
           render: (r) => accountName(r.accountId),
         },
         {
-          accessor: 'valor',
+          accessor: 'amount',
           title: t('common.amount'),
           textAlign: 'right',
           width: 140,
           render: (r) => (
             <Text fw={600} c="orange.7">
-              -{f.money(r.valor)}
+              -{f.money(r.amount)}
             </Text>
           ),
         },

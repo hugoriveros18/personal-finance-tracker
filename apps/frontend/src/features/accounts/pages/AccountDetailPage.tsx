@@ -1,16 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Group,
-  SimpleGrid,
-  Stack,
-  Tabs,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Button, Card, Group, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
 import { IconArrowLeft, IconCreditCardPay } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +25,7 @@ export default function AccountDetailPage() {
 
   return (
     <Page
-      title={account.nombre}
+      title={account.name}
       description={t('accounts.subtitle')}
       actions={
         <Group>
@@ -47,7 +36,7 @@ export default function AccountDetailPage() {
           >
             {t('nav.accounts')}
           </Button>
-          {account.pasivos > 0 && (
+          {account.liabilitiesBalance > 0 && (
             <Button
               color="orange"
               leftSection={<IconCreditCardPay size={16} />}
@@ -62,19 +51,27 @@ export default function AccountDetailPage() {
       <Card withBorder p="lg">
         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
           <Stack gap={2}>
-            <Text size="xs" c="dimmed" tt="uppercase">{t('dashboard.disponible')}</Text>
-            <MoneyDisplay value={account.disponible} fw={700} fz="xl" />
+            <Text size="xs" c="dimmed" tt="uppercase">
+              {t('dashboard.availableBalance')}
+            </Text>
+            <MoneyDisplay value={account.availableBalance} fw={700} fz="xl" />
           </Stack>
           <Stack gap={2}>
-            <Text size="xs" c="dimmed" tt="uppercase">{t('dashboard.ahorro')}</Text>
-            <MoneyDisplay value={account.ahorro} fw={700} fz="xl" />
+            <Text size="xs" c="dimmed" tt="uppercase">
+              {t('dashboard.savingsBalance')}
+            </Text>
+            <MoneyDisplay value={account.savingsBalance} fw={700} fz="xl" />
           </Stack>
           <Stack gap={2}>
-            <Text size="xs" c="dimmed" tt="uppercase">{t('dashboard.pasivos')}</Text>
-            <MoneyDisplay value={account.pasivos} fw={700} fz="xl" c="red.7" />
+            <Text size="xs" c="dimmed" tt="uppercase">
+              {t('dashboard.liabilitiesBalance')}
+            </Text>
+            <MoneyDisplay value={account.liabilitiesBalance} fw={700} fz="xl" c="red.7" />
           </Stack>
           <Stack gap={2}>
-            <Text size="xs" c="dimmed" tt="uppercase">Total</Text>
+            <Text size="xs" c="dimmed" tt="uppercase">
+              Total
+            </Text>
             <MoneyDisplay value={account.total} fw={700} fz="xl" c="teal.7" />
           </Stack>
         </SimpleGrid>

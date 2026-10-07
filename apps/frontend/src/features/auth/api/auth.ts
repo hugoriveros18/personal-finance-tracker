@@ -9,8 +9,8 @@ export interface AuthResponse {
 }
 
 export async function register(input: {
-  nombre: string;
-  apellidos: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
 }): Promise<AuthResponse> {

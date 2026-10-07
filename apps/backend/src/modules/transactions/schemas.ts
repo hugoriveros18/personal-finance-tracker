@@ -7,23 +7,23 @@ import {
   uuidSchema,
 } from '../../shared/zod.js';
 
-export const transactionTipoSchema = z.enum(['ingreso', 'egreso', 'pasivo']);
+export const transactionTypeSchema = z.enum(['income', 'expense', 'liability']);
 
 export const createTransactionSchema = z.object({
-  descripcion: z.string().min(1).max(200).trim(),
-  fecha: dateOnlySchema,
-  tipo: transactionTipoSchema,
-  valor: moneyPositiveIntSchema,
+  description: z.string().min(1).max(200).trim(),
+  date: dateOnlySchema,
+  type: transactionTypeSchema,
+  amount: moneyPositiveIntSchema,
   accountId: uuidSchema,
   categoryId: uuidSchema,
 });
 
 export const updateTransactionSchema = z
   .object({
-    descripcion: z.string().min(1).max(200).trim().optional(),
-    fecha: dateOnlySchema.optional(),
-    tipo: transactionTipoSchema.optional(),
-    valor: moneyPositiveIntSchema.optional(),
+    description: z.string().min(1).max(200).trim().optional(),
+    date: dateOnlySchema.optional(),
+    type: transactionTypeSchema.optional(),
+    amount: moneyPositiveIntSchema.optional(),
     accountId: uuidSchema.optional(),
     categoryId: uuidSchema.optional(),
   })
@@ -43,13 +43,11 @@ export const listTransactionsQuerySchema = z.object({
     .optional(),
   accountIds: csvSchema(uuidSchema),
   categoryIds: csvSchema(uuidSchema),
-  tipos: csvSchema(transactionTipoSchema),
-  valorMin: z.coerce.number().int().nonnegative().optional(),
-  valorMax: z.coerce.number().int().nonnegative().optional(),
+  types: csvSchema(transactionTypeSchema),
+  amountMin: z.coerce.number().int().nonnegative().optional(),
+  amountMax: z.coerce.number().int().nonnegative().optional(),
   q: z.string().max(120).optional(),
-  sort: z
-    .enum(['fecha', '-fecha', 'valor', '-valor', 'created', '-created'])
-    .default('-fecha'),
+  sort: z.enum(['date', '-date', 'amount', '-amount', 'created', '-created']).default('-date'),
 });
 
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;

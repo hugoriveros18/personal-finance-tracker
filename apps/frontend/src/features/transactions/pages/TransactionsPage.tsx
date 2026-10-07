@@ -10,7 +10,7 @@ import { openTransactionFormModal } from '../components/TransactionFormModal';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { categoryKeys, listCategories } from '@/features/categories/api/categories';
 import { MoneyInput } from '@/shared/components/MoneyInput';
-import type { TransactionTipo } from '@/shared/types/domain';
+import type { TransactionType } from '@/shared/types/domain';
 
 const filtersSchema = z.object({
   month: z.string().optional(),
@@ -22,12 +22,12 @@ const filtersSchema = z.object({
     .string()
     .optional()
     .transform((s) => (s ? s.split(',').filter(Boolean) : [])),
-  tipos: z
+  types: z
     .string()
     .optional()
-    .transform((s) => (s ? (s.split(',').filter(Boolean) as TransactionTipo[]) : [])),
-  valorMin: z.coerce.number().int().nonnegative().optional(),
-  valorMax: z.coerce.number().int().nonnegative().optional(),
+    .transform((s) => (s ? (s.split(',').filter(Boolean) as TransactionType[]) : [])),
+  amountMin: z.coerce.number().int().nonnegative().optional(),
+  amountMax: z.coerce.number().int().nonnegative().optional(),
   q: z.string().optional(),
 });
 
@@ -52,7 +52,7 @@ export default function TransactionsPage() {
           <Group wrap="wrap">
             <MultiSelect
               placeholder={t('transactions.filters.byCategory')}
-              data={(categoriesQ.data ?? []).map((c) => ({ value: c.id, label: c.nombre }))}
+              data={(categoriesQ.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
               value={filters.categoryIds}
               onChange={(v) => setFilters({ categoryIds: v.join(',') as never })}
               searchable
@@ -61,7 +61,7 @@ export default function TransactionsPage() {
             />
             <MultiSelect
               placeholder={t('transactions.filters.byAccount')}
-              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.nombre }))}
+              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
               value={filters.accountIds}
               onChange={(v) => setFilters({ accountIds: v.join(',') as never })}
               searchable
@@ -71,25 +71,25 @@ export default function TransactionsPage() {
             <MultiSelect
               placeholder={t('transactions.filters.byType')}
               data={[
-                { value: 'ingreso', label: t('transactions.tipoIngreso') },
-                { value: 'egreso', label: t('transactions.tipoEgreso') },
-                { value: 'pasivo', label: t('transactions.tipoPasivo') },
+                { value: 'income', label: t('transactions.income') },
+                { value: 'expense', label: t('transactions.expense') },
+                { value: 'liability', label: t('transactions.liability') },
               ]}
-              value={filters.tipos}
-              onChange={(v) => setFilters({ tipos: v.join(',') as never })}
+              value={filters.types}
+              onChange={(v) => setFilters({ types: v.join(',') as never })}
               clearable
               w={180}
             />
             <MoneyInput
               placeholder={t('transactions.filters.minAmount')}
-              value={filters.valorMin ?? null}
-              onChange={(v) => setFilters({ valorMin: v ?? undefined })}
+              value={filters.amountMin ?? null}
+              onChange={(v) => setFilters({ amountMin: v ?? undefined })}
               w={130}
             />
             <MoneyInput
               placeholder={t('transactions.filters.maxAmount')}
-              value={filters.valorMax ?? null}
-              onChange={(v) => setFilters({ valorMax: v ?? undefined })}
+              value={filters.amountMax ?? null}
+              onChange={(v) => setFilters({ amountMax: v ?? undefined })}
               w={130}
             />
             <TextInput
@@ -105,9 +105,9 @@ export default function TransactionsPage() {
                 setFilters({
                   accountIds: '' as never,
                   categoryIds: '' as never,
-                  tipos: '' as never,
-                  valorMin: undefined,
-                  valorMax: undefined,
+                  types: '' as never,
+                  amountMin: undefined,
+                  amountMax: undefined,
                   q: undefined,
                   month: undefined,
                 })
@@ -122,9 +122,9 @@ export default function TransactionsPage() {
       <TransactionsTable
         filterAccountIds={filters.accountIds}
         filterCategoryIds={filters.categoryIds}
-        filterTipos={filters.tipos}
-        filterValorMin={filters.valorMin}
-        filterValorMax={filters.valorMax}
+        filterTypes={filters.types}
+        filterAmountMin={filters.amountMin}
+        filterAmountMax={filters.amountMax}
         search={filters.q}
         filterMonth={filters.month}
       />

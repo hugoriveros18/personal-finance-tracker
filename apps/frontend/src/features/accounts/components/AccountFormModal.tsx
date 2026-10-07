@@ -11,21 +11,21 @@ import { accountKeys, createAccount, updateAccount } from '../api/accounts';
 import type { Account } from '@/shared/types/domain';
 import { getApiErrorMessage } from '@/shared/api/client';
 
-// Empty money fields are treated as 0 (saldo inicial implícito).
+// Empty money fields are treated as 0 (implicit initial balance).
 const moneyOrZero = z.preprocess(
   (v) => (v === null || v === undefined || v === '' ? 0 : v),
   z.number().int().nonnegative(),
 );
 
 const createSchema = z.object({
-  nombre: z.string().min(1).max(80),
-  disponible: moneyOrZero,
-  ahorro: moneyOrZero,
-  pasivos: moneyOrZero,
+  name: z.string().min(1).max(80),
+  availableBalance: moneyOrZero,
+  savingsBalance: moneyOrZero,
+  liabilitiesBalance: moneyOrZero,
 });
 
 const editSchema = z.object({
-  nombre: z.string().min(1).max(80),
+  name: z.string().min(1).max(80),
 });
 
 interface FormProps {
@@ -33,7 +33,7 @@ interface FormProps {
   onClose: () => void;
 }
 
-function FormBody({ initial, onClose }: FormProps) {
+export function AccountForm({ initial, onClose }: FormProps) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const isEdit = !!initial;
@@ -46,19 +46,19 @@ function FormBody({ initial, onClose }: FormProps) {
   } = useForm({
     resolver: zodResolver(isEdit ? editSchema : createSchema),
     defaultValues: isEdit
-      ? { nombre: initial!.nombre }
+      ? { name: initial!.name }
       : ({
-          nombre: '',
-          disponible: null,
-          ahorro: null,
-          pasivos: null,
+          name: '',
+          availableBalance: null,
+          savingsBalance: null,
+          liabilitiesBalance: null,
         } as unknown as z.infer<typeof createSchema>),
   });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       if (isEdit) {
-        await updateAccount(initial!.id, { nombre: (values as { nombre: string }).nombre });
+        await updateAccount(initial!.id, { name: (values as { name: string }).name });
         notifications.show({ color: 'teal', message: t('common.saved') });
       } else {
         await createAccount(values as z.infer<typeof createSchema>);
@@ -76,8 +76,8 @@ function FormBody({ initial, onClose }: FormProps) {
       <Stack>
         <TextInput
           label={t('common.name')}
-          {...register('nombre')}
-          error={(errors as Record<string, { message?: string }>).nombre?.message}
+          {...register('name')}
+          error={(errors as Record<string, { message?: string }>).name?.message}
           autoFocus
         />
         {!isEdit && (
@@ -87,10 +87,10 @@ function FormBody({ initial, onClose }: FormProps) {
             </Text>
             <Controller
               control={control}
-              name={'disponible' as never}
+              name={'availableBalance' as never}
               render={({ field }) => (
                 <MoneyInput
-                  label={t('dashboard.disponible')}
+                  label={t('dashboard.availableBalance')}
                   placeholder="$0"
                   value={(field.value as number | null) ?? null}
                   onChange={(v) => field.onChange(v)}
@@ -99,10 +99,10 @@ function FormBody({ initial, onClose }: FormProps) {
             />
             <Controller
               control={control}
-              name={'ahorro' as never}
+              name={'savingsBalance' as never}
               render={({ field }) => (
                 <MoneyInput
-                  label={t('dashboard.ahorro')}
+                  label={t('dashboard.savingsBalance')}
                   placeholder="$0"
                   value={(field.value as number | null) ?? null}
                   onChange={(v) => field.onChange(v)}
@@ -111,10 +111,10 @@ function FormBody({ initial, onClose }: FormProps) {
             />
             <Controller
               control={control}
-              name={'pasivos' as never}
+              name={'liabilitiesBalance' as never}
               render={({ field }) => (
                 <MoneyInput
-                  label={t('dashboard.pasivos')}
+                  label={t('dashboard.liabilitiesBalance')}
                   placeholder="$0"
                   value={(field.value as number | null) ?? null}
                   onChange={(v) => field.onChange(v)}
@@ -139,12 +139,12 @@ function FormBody({ initial, onClose }: FormProps) {
 export function openAccountFormModal(initial?: Account, t?: (k: string) => string) {
   const id = `account-form-${Math.random()}`;
   const title = initial
-    ? t?.('common.edit') ?? 'Edit account'
-    : t?.('accounts.newAccount') ?? 'New account';
+    ? (t?.('common.edit') ?? 'Edit account')
+    : (t?.('accounts.newAccount') ?? 'New account');
   modals.open({
     modalId: id,
     title,
     size: 'md',
-    children: <FormBody initial={initial} onClose={() => modals.close(id)} />,
+    children: <AccountForm initial={initial} onClose={() => modals.close(id)} />,
   });
 }

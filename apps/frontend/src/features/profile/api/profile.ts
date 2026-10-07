@@ -2,8 +2,8 @@ import { api } from '@/shared/api/client';
 import type { User } from '@/shared/types/domain';
 
 export async function patchProfile(input: {
-  nombre?: string;
-  apellidos?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   preferredLanguage?: 'es' | 'en';
   preferredTheme?: 'light' | 'dark';

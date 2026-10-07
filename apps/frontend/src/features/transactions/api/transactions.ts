@@ -1,8 +1,8 @@
 import { api } from '@/shared/api/client';
-import type { Paginated, Transaction, TransactionTipo } from '@/shared/types/domain';
+import type { Paginated, Transaction, TransactionType } from '@/shared/types/domain';
 
 export interface TransactionsListResponse extends Paginated<Transaction> {
-  totals: { ingreso: number; egreso: number; pasivo: number };
+  totals: { income: number; expense: number; liability: number };
 }
 
 export const transactionKeys = {
@@ -18,10 +18,10 @@ export async function listTransactions(
 }
 
 export async function createTransaction(input: {
-  descripcion: string;
-  fecha: string;
-  tipo: TransactionTipo;
-  valor: number;
+  description: string;
+  date: string;
+  type: TransactionType;
+  amount: number;
   accountId: string;
   categoryId: string;
 }): Promise<Transaction> {
@@ -32,10 +32,10 @@ export async function createTransaction(input: {
 export async function updateTransaction(
   id: string,
   input: Partial<{
-    descripcion: string;
-    fecha: string;
-    tipo: TransactionTipo;
-    valor: number;
+    description: string;
+    date: string;
+    type: TransactionType;
+    amount: number;
     accountId: string;
     categoryId: string;
   }>,

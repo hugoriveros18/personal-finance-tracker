@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { idParamSchema } from '../../shared/zod.js';
 import {
   createCategorySchema,
@@ -6,13 +6,13 @@ import {
   updateCategorySchema,
 } from './schemas.js';
 
-export const categoriesRoutes: FastifyPluginAsync = async (app) => {
+export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.requireAuth);
 
   app.get('/', { schema: { querystring: listCategoriesQuerySchema } }, async (req) => {
     const items = await app.prisma.category.findMany({
-      where: { userId: req.userId, ...(req.query.tipo ? { tipo: req.query.tipo } : {}) },
-      orderBy: [{ tipo: 'asc' }, { nombre: 'asc' }],
+      where: { userId: req.userId, ...(req.query.type ? { type: req.query.type } : {}) },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
     return { items };
   });

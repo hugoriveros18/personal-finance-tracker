@@ -1,16 +1,16 @@
 export type Language = 'es' | 'en';
 export type ThemeMode = 'light' | 'dark';
-export type CategoryTipo = 'ingreso' | 'egreso';
-export type TransactionTipo = 'ingreso' | 'egreso' | 'pasivo';
-export type MovementFlujo =
-  | 'INTER_DISPONIBLE'
-  | 'INTRA_DISPONIBLE_TO_AHORRO'
-  | 'INTRA_AHORRO_TO_DISPONIBLE';
+export type CategoryType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'liability';
+export type MovementFlow =
+  | 'INTER_AVAILABLE'
+  | 'INTRA_AVAILABLE_TO_SAVINGS'
+  | 'INTRA_SAVINGS_TO_AVAILABLE';
 
 export interface User {
   id: string;
-  nombre: string;
-  apellidos: string;
+  firstName: string;
+  lastName: string;
   email: string;
   avatarPath: string | null;
   preferredLanguage: Language;
@@ -19,18 +19,18 @@ export interface User {
 
 export interface Category {
   id: string;
-  nombre: string;
-  tipo: CategoryTipo;
+  name: string;
+  type: CategoryType;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Account {
   id: string;
-  nombre: string;
-  disponible: number;
-  ahorro: number;
-  pasivos: number;
+  name: string;
+  availableBalance: number;
+  savingsBalance: number;
+  liabilitiesBalance: number;
   total: number;
   createdAt: string;
   updatedAt: string;
@@ -40,23 +40,23 @@ export interface Transaction {
   id: string;
   accountId: string;
   categoryId: string;
-  categoryTipo: CategoryTipo;
-  descripcion: string;
-  fecha: string;
-  tipo: TransactionTipo;
-  valor: number;
+  categoryType: CategoryType;
+  description: string;
+  date: string;
+  type: TransactionType;
+  amount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Movement {
   id: string;
-  cuentaEmisoraId: string;
-  cuentaReceptoraId: string;
-  flujo: MovementFlujo;
-  descripcion: string;
-  fecha: string;
-  valor: number;
+  sourceAccountId: string;
+  destinationAccountId: string;
+  flow: MovementFlow;
+  description: string;
+  date: string;
+  amount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,9 +64,9 @@ export interface Movement {
 export interface LiabilityPayment {
   id: string;
   accountId: string;
-  descripcion: string;
-  fecha: string;
-  valor: number;
+  description: string;
+  date: string;
+  amount: number;
   createdAt: string;
   updatedAt: string;
 }

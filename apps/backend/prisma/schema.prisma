@@ -17,27 +17,27 @@ enum Theme {
   dark
 }
 
-enum CategoryTipo {
-  ingreso
-  egreso
+enum CategoryType {
+  income
+  expense
 }
 
-enum TransactionTipo {
-  ingreso
-  egreso
-  pasivo
+enum TransactionType {
+  income
+  expense
+  liability
 }
 
-enum MovementFlujo {
-  INTER_DISPONIBLE
-  INTRA_DISPONIBLE_TO_AHORRO
-  INTRA_AHORRO_TO_DISPONIBLE
+enum MovementFlow {
+  INTER_AVAILABLE
+  INTRA_AVAILABLE_TO_SAVINGS
+  INTRA_SAVINGS_TO_AVAILABLE
 }
 
 model User {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre            String   @db.VarChar(80)
-  apellidos         String   @db.VarChar(120)
+  firstName         String   @map("first_name") @db.VarChar(80)
+  lastName          String   @map("last_name") @db.VarChar(120)
   email             String   @unique @db.VarChar(254)
   passwordHash      String   @map("password_hash") @db.Text
   avatarPath        String?  @map("avatar_path") @db.Text
@@ -59,37 +59,37 @@ model User {
 model Category {
   id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String       @map("user_id") @db.Uuid
-  nombre    String       @db.VarChar(80)
-  tipo      CategoryTipo
+  name      String       @db.VarChar(80)
+  type      CategoryType
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
-  @@unique([userId, nombre, tipo])
-  @@index([userId, tipo])
+  @@unique([userId, name, type])
+  @@index([userId, type])
   @@map("category")
 }
 
 model Account {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  nombre     String   @db.VarChar(80)
-  disponible BigInt   @default(0)
-  ahorro     BigInt   @default(0)
-  pasivos    BigInt   @default(0)
-  total      BigInt   @default(0)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  name               String   @db.VarChar(80)
+  availableBalance   BigInt   @default(0) @map("available_balance")
+  savingsBalance     BigInt   @default(0) @map("savings_balance")
+  liabilitiesBalance BigInt   @default(0) @map("liabilities_balance")
+  total              BigInt   @default(0)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions         Transaction[]
-  movementsAsEmisora   Movement[]         @relation("MovementEmisora")
-  movementsAsReceptora Movement[]         @relation("MovementReceptora")
-  liabilityPayments    LiabilityPayment[]
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions           Transaction[]
+  movementsAsSource      Movement[]         @relation("MovementSource")
+  movementsAsDestination Movement[]         @relation("MovementDestination")
+  liabilityPayments      LiabilityPayment[]
 
-  @@unique([userId, nombre])
+  @@unique([userId, name])
   @@index([userId])
   @@map("account")
 }
@@ -99,11 +99,11 @@ model Transaction {
   userId       String          @map("user_id") @db.Uuid
   accountId    String          @map("account_id") @db.Uuid
   categoryId   String          @map("category_id") @db.Uuid
-  categoryTipo CategoryTipo    @map("category_tipo")
-  descripcion  String          @db.VarChar(200)
-  fecha        DateTime        @db.Date
-  tipo         TransactionTipo
-  valor        BigInt
+  categoryType CategoryType    @map("category_type")
+  description  String          @db.VarChar(200)
+  date         DateTime        @db.Date
+  type         TransactionType
+  amount       BigInt
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -111,33 +111,33 @@ model Transaction {
   account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
-  @@index([userId, fecha])
-  @@index([userId, accountId, fecha])
-  @@index([userId, categoryId, fecha])
-  @@index([userId, tipo, fecha])
+  @@index([userId, date])
+  @@index([userId, accountId, date])
+  @@index([userId, categoryId, date])
+  @@index([userId, type, date])
   @@map("transaction")
 }
 
 model Movement {
-  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String        @map("user_id") @db.Uuid
-  cuentaEmisoraId   String        @map("cuenta_emisora_id") @db.Uuid
-  cuentaReceptoraId String        @map("cuenta_receptora_id") @db.Uuid
-  flujo             MovementFlujo
-  descripcion       String        @db.VarChar(200)
-  fecha             DateTime      @db.Date
-  valor             BigInt
-  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String       @map("user_id") @db.Uuid
+  sourceAccountId      String       @map("source_account_id") @db.Uuid
+  destinationAccountId String       @map("destination_account_id") @db.Uuid
+  flow                 MovementFlow
+  description          String       @db.VarChar(200)
+  date                 DateTime     @db.Date
+  amount               BigInt
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cuentaEmisora   Account @relation("MovementEmisora", fields: [cuentaEmisoraId], references: [id], onDelete: Restrict)
-  cuentaReceptora Account @relation("MovementReceptora", fields: [cuentaReceptoraId], references: [id], onDelete: Restrict)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceAccount      Account @relation("MovementSource", fields: [sourceAccountId], references: [id], onDelete: Restrict)
+  destinationAccount Account @relation("MovementDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
 
-  @@index([userId, fecha])
-  @@index([userId, cuentaEmisoraId, fecha])
-  @@index([userId, cuentaReceptoraId, fecha])
-  @@index([userId, flujo, fecha])
+  @@index([userId, date])
+  @@index([userId, sourceAccountId, date])
+  @@index([userId, destinationAccountId, date])
+  @@index([userId, flow, date])
   @@map("movement")
 }
 
@@ -145,17 +145,17 @@ model LiabilityPayment {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId      String   @map("user_id") @db.Uuid
   accountId   String   @map("account_id") @db.Uuid
-  descripcion String   @db.VarChar(200)
-  fecha       DateTime @db.Date
-  valor       BigInt
+  description String   @db.VarChar(200)
+  date        DateTime @db.Date
+  amount      BigInt
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
-  @@index([userId, fecha])
-  @@index([userId, accountId, fecha])
+  @@index([userId, date])
+  @@index([userId, accountId, date])
   @@map("liability_payment")
 }
 

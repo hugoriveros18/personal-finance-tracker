@@ -1,23 +1,23 @@
-import type { Prisma, PrismaClient, Transaction, TransactionTipo } from '@prisma/client';
+import type { Prisma, PrismaClient, Transaction, TransactionType } from '@prisma/client';
 import { lockAccountsForUpdate } from '../../shared/locking.js';
 import { AppError, NotFound } from '../../shared/errors.js';
 
 export interface BalanceDelta {
-  disponible: bigint;
-  ahorro: bigint;
-  pasivos: bigint;
+  availableBalance: bigint;
+  savingsBalance: bigint;
+  liabilitiesBalance: bigint;
 }
 
-const ZERO: BalanceDelta = { disponible: 0n, ahorro: 0n, pasivos: 0n };
+const ZERO: BalanceDelta = { availableBalance: 0n, savingsBalance: 0n, liabilitiesBalance: 0n };
 
-export function deltaForTransaction(tipo: TransactionTipo, valor: bigint): BalanceDelta {
-  switch (tipo) {
-    case 'ingreso':
-      return { disponible: valor, ahorro: 0n, pasivos: 0n };
-    case 'egreso':
-      return { disponible: -valor, ahorro: 0n, pasivos: 0n };
-    case 'pasivo':
-      return { disponible: 0n, ahorro: 0n, pasivos: valor };
+export function deltaForTransaction(type: TransactionType, amount: bigint): BalanceDelta {
+  switch (type) {
+    case 'income':
+      return { availableBalance: amount, savingsBalance: 0n, liabilitiesBalance: 0n };
+    case 'expense':
+      return { availableBalance: -amount, savingsBalance: 0n, liabilitiesBalance: 0n };
+    case 'liability':
+      return { availableBalance: 0n, savingsBalance: 0n, liabilitiesBalance: amount };
   }
 }
 
@@ -26,14 +26,19 @@ export async function applyDeltaToAccount(
   accountId: string,
   delta: BalanceDelta,
 ): Promise<void> {
-  if (delta.disponible === 0n && delta.ahorro === 0n && delta.pasivos === 0n) return;
+  if (
+    delta.availableBalance === 0n &&
+    delta.savingsBalance === 0n &&
+    delta.liabilitiesBalance === 0n
+  )
+    return;
   // Use raw to handle bigint arithmetic and trigger CHECK constraints to fire on row update
   await tx.$executeRaw`
     UPDATE "account" SET
-      "disponible" = "disponible" + ${delta.disponible}::bigint,
-      "ahorro"     = "ahorro"     + ${delta.ahorro}::bigint,
-      "pasivos"    = "pasivos"    + ${delta.pasivos}::bigint,
-      "total"      = ("disponible" + ${delta.disponible}::bigint) + ("ahorro" + ${delta.ahorro}::bigint),
+      "available_balance" = "available_balance" + ${delta.availableBalance}::bigint,
+      "savings_balance"     = "savings_balance"     + ${delta.savingsBalance}::bigint,
+      "liabilities_balance"    = "liabilities_balance"    + ${delta.liabilitiesBalance}::bigint,
+      "total"      = ("available_balance" + ${delta.availableBalance}::bigint) + ("savings_balance" + ${delta.savingsBalance}::bigint),
       "updated_at" = now()
     WHERE id = ${accountId}::uuid
   `;
@@ -45,10 +50,10 @@ export class TransactionsService {
   async create(
     userId: string,
     input: {
-      descripcion: string;
-      fecha: Date;
-      tipo: TransactionTipo;
-      valor: number;
+      description: string;
+      date: Date;
+      type: TransactionType;
+      amount: number;
       accountId: string;
       categoryId: string;
     },
@@ -65,23 +70,26 @@ export class TransactionsService {
         });
         if (!category) throw NotFound('category');
         // Coherence (DB trigger also enforces; better error than 23514)
-        if (input.tipo === 'ingreso' && category.tipo !== 'ingreso') {
+        if (input.type === 'income' && category.type !== 'income') {
           throw new AppError(
             422,
-            'CATEGORY_TIPO_MISMATCH',
+            'CATEGORY_TYPE_MISMATCH',
             'Income transactions require an income category',
           );
         }
-        if ((input.tipo === 'egreso' || input.tipo === 'pasivo') && category.tipo !== 'egreso') {
+        if (
+          (input.type === 'expense' || input.type === 'liability') &&
+          category.type !== 'expense'
+        ) {
           throw new AppError(
             422,
-            'CATEGORY_TIPO_MISMATCH',
+            'CATEGORY_TYPE_MISMATCH',
             'Expense and liability transactions require an expense category',
           );
         }
 
-        const valor = BigInt(input.valor);
-        const delta = deltaForTransaction(input.tipo, valor);
+        const amount = BigInt(input.amount);
+        const delta = deltaForTransaction(input.type, amount);
         await applyDeltaToAccount(tx, input.accountId, delta);
 
         return tx.transaction.create({
@@ -89,11 +97,11 @@ export class TransactionsService {
             userId,
             accountId: input.accountId,
             categoryId: input.categoryId,
-            categoryTipo: category.tipo,
-            descripcion: input.descripcion,
-            fecha: input.fecha,
-            tipo: input.tipo,
-            valor,
+            categoryType: category.type,
+            description: input.description,
+            date: input.date,
+            type: input.type,
+            amount,
           },
         });
       },
@@ -105,10 +113,10 @@ export class TransactionsService {
     userId: string,
     id: string,
     patch: Partial<{
-      descripcion: string;
-      fecha: Date;
-      tipo: TransactionTipo;
-      valor: number;
+      description: string;
+      date: Date;
+      type: TransactionType;
+      amount: number;
       accountId: string;
       categoryId: string;
     }>,
@@ -120,10 +128,10 @@ export class TransactionsService {
 
         const newAccountId = patch.accountId ?? existing.accountId;
         const newCategoryId = patch.categoryId ?? existing.categoryId;
-        const newTipo = patch.tipo ?? existing.tipo;
-        const newValor = patch.valor !== undefined ? BigInt(patch.valor) : existing.valor;
-        const newFecha = patch.fecha ?? existing.fecha;
-        const newDescripcion = patch.descripcion ?? existing.descripcion;
+        const newType = patch.type ?? existing.type;
+        const newAmount = patch.amount !== undefined ? BigInt(patch.amount) : existing.amount;
+        const newDate = patch.date ?? existing.date;
+        const newDescription = patch.description ?? existing.description;
 
         await lockAccountsForUpdate(tx, userId, [existing.accountId, newAccountId]);
 
@@ -131,11 +139,15 @@ export class TransactionsService {
           where: { id: newCategoryId, userId },
         });
         if (!newCategory) throw NotFound('category');
-        if (newTipo === 'ingreso' && newCategory.tipo !== 'ingreso') {
-          throw new AppError(422, 'CATEGORY_TIPO_MISMATCH', 'Income requires income category');
+        if (newType === 'income' && newCategory.type !== 'income') {
+          throw new AppError(422, 'CATEGORY_TYPE_MISMATCH', 'Income requires income category');
         }
-        if ((newTipo === 'egreso' || newTipo === 'pasivo') && newCategory.tipo !== 'egreso') {
-          throw new AppError(422, 'CATEGORY_TIPO_MISMATCH', 'Expense/liability requires expense category');
+        if ((newType === 'expense' || newType === 'liability') && newCategory.type !== 'expense') {
+          throw new AppError(
+            422,
+            'CATEGORY_TYPE_MISMATCH',
+            'Expense/liability requires expense category',
+          );
         }
 
         if (patch.accountId) {
@@ -146,14 +158,14 @@ export class TransactionsService {
         }
 
         // Reverse old impact
-        const oldDelta = deltaForTransaction(existing.tipo, existing.valor);
+        const oldDelta = deltaForTransaction(existing.type, existing.amount);
         await applyDeltaToAccount(tx, existing.accountId, {
-          disponible: -oldDelta.disponible,
-          ahorro: -oldDelta.ahorro,
-          pasivos: -oldDelta.pasivos,
+          availableBalance: -oldDelta.availableBalance,
+          savingsBalance: -oldDelta.savingsBalance,
+          liabilitiesBalance: -oldDelta.liabilitiesBalance,
         });
         // Reapply new impact
-        const newDelta = deltaForTransaction(newTipo, newValor);
+        const newDelta = deltaForTransaction(newType, newAmount);
         await applyDeltaToAccount(tx, newAccountId, newDelta);
 
         return tx.transaction.update({
@@ -161,11 +173,11 @@ export class TransactionsService {
           data: {
             accountId: newAccountId,
             categoryId: newCategoryId,
-            categoryTipo: newCategory.tipo,
-            tipo: newTipo,
-            valor: newValor,
-            fecha: newFecha,
-            descripcion: newDescripcion,
+            categoryType: newCategory.type,
+            type: newType,
+            amount: newAmount,
+            date: newDate,
+            description: newDescription,
           },
         });
       },
@@ -179,11 +191,11 @@ export class TransactionsService {
         const existing = await tx.transaction.findFirst({ where: { id, userId } });
         if (!existing) throw NotFound('transaction');
         await lockAccountsForUpdate(tx, userId, [existing.accountId]);
-        const oldDelta = deltaForTransaction(existing.tipo, existing.valor);
+        const oldDelta = deltaForTransaction(existing.type, existing.amount);
         await applyDeltaToAccount(tx, existing.accountId, {
-          disponible: -oldDelta.disponible,
-          ahorro: -oldDelta.ahorro,
-          pasivos: -oldDelta.pasivos,
+          availableBalance: -oldDelta.availableBalance,
+          savingsBalance: -oldDelta.savingsBalance,
+          liabilitiesBalance: -oldDelta.liabilitiesBalance,
         });
         await tx.transaction.delete({ where: { id } });
       },

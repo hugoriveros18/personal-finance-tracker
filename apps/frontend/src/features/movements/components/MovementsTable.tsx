@@ -1,5 +1,6 @@
+import { getTableLabels } from '@/shared/lib/tableLabels';
 import { useMemo, useState } from 'react';
-import { ActionIcon, Badge, Group, Menu, Text } from '@mantine/core';
+import { ActionIcon, Badge, Menu, Text } from '@mantine/core';
 import { DataTable } from 'mantine-datatable';
 import { IconDots, IconEdit, IconEye, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,28 +9,28 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { deleteMovement, listMovements, movementKeys } from '../api/movements';
 import { useFormatters } from '@/shared/hooks/useFormatters';
-import type { Movement, MovementFlujo } from '@/shared/types/domain';
+import type { Movement, MovementFlow } from '@/shared/types/domain';
 import { openMovementFormModal } from './MovementFormModal';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { getApiErrorMessage } from '@/shared/api/client';
 
-const flujoColors: Record<MovementFlujo, string> = {
-  INTER_DISPONIBLE: 'yellow',
-  INTRA_DISPONIBLE_TO_AHORRO: 'teal',
-  INTRA_AHORRO_TO_DISPONIBLE: 'grape',
+const flowColors: Record<MovementFlow, string> = {
+  INTER_AVAILABLE: 'yellow',
+  INTRA_AVAILABLE_TO_SAVINGS: 'teal',
+  INTRA_SAVINGS_TO_AVAILABLE: 'grape',
 };
 
 interface Props {
-  /** Movements where the account is EITHER emisora or receptora (OR). */
+  /** Movements where the account is EITHER source or destination (OR). */
   filterAccountIds?: string[];
-  /** Movements where the account is exclusively the emisora. */
-  filterEmisoraIds?: string[];
-  /** Movements where the account is exclusively the receptora. */
-  filterReceptoraIds?: string[];
+  /** Movements where the account is exclusively the source. */
+  filterSourceAccountIds?: string[];
+  /** Movements where the account is exclusively the destination. */
+  filterDestinationAccountIds?: string[];
   filterMonth?: string;
-  filterFlujos?: MovementFlujo[];
-  filterValorMin?: number;
-  filterValorMax?: number;
+  filterFlows?: MovementFlow[];
+  filterAmountMin?: number;
+  filterAmountMax?: number;
 }
 
 export function MovementsTable(props: Props) {
@@ -45,15 +46,15 @@ export function MovementsTable(props: Props) {
     if (props.filterAccountIds?.length) {
       p.accountIds = props.filterAccountIds.join(',');
     }
-    if (props.filterEmisoraIds?.length) {
-      p.cuentaEmisoraIds = props.filterEmisoraIds.join(',');
+    if (props.filterSourceAccountIds?.length) {
+      p.sourceAccountIds = props.filterSourceAccountIds.join(',');
     }
-    if (props.filterReceptoraIds?.length) {
-      p.cuentaReceptoraIds = props.filterReceptoraIds.join(',');
+    if (props.filterDestinationAccountIds?.length) {
+      p.destinationAccountIds = props.filterDestinationAccountIds.join(',');
     }
-    if (props.filterFlujos?.length) p.flujos = props.filterFlujos.join(',');
-    if (props.filterValorMin !== undefined) p.valorMin = props.filterValorMin;
-    if (props.filterValorMax !== undefined) p.valorMax = props.filterValorMax;
+    if (props.filterFlows?.length) p.flows = props.filterFlows.join(',');
+    if (props.filterAmountMin !== undefined) p.amountMin = props.filterAmountMin;
+    if (props.filterAmountMax !== undefined) p.amountMax = props.filterAmountMax;
     return p;
   }, [page, pageSize, props]);
 
@@ -64,7 +65,7 @@ export function MovementsTable(props: Props) {
   });
 
   const accountsQ = useQuery({ queryKey: accountKeys.all, queryFn: listAccounts });
-  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.nombre ?? '—';
+  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.name ?? '—';
 
   const removeMut = useMutation({
     mutationFn: deleteMovement,
@@ -81,6 +82,7 @@ export function MovementsTable(props: Props) {
 
   return (
     <DataTable<Movement>
+      {...getTableLabels(t)}
       withTableBorder
       borderRadius="md"
       striped
@@ -97,41 +99,41 @@ export function MovementsTable(props: Props) {
       onRecordsPerPageChange={setPageSize}
       columns={[
         {
-          accessor: 'fecha',
+          accessor: 'date',
           title: t('common.date'),
-          render: (r) => f.date(r.fecha),
+          render: (r) => f.date(r.date),
           width: 110,
         },
         {
-          accessor: 'flujo',
+          accessor: 'flow',
           title: t('common.type'),
           render: (r) => (
-            <Badge variant="light" color={flujoColors[r.flujo]}>
-              {t(`movements.flujo.${r.flujo}`)}
+            <Badge variant="light" color={flowColors[r.flow]}>
+              {t(`movements.flow.${r.flow}`)}
             </Badge>
           ),
         },
         {
-          accessor: 'descripcion',
+          accessor: 'description',
           title: t('common.description'),
-          render: (r) => <Text lineClamp={1}>{r.descripcion}</Text>,
+          render: (r) => <Text lineClamp={1}>{r.description}</Text>,
         },
         {
-          accessor: 'cuentaEmisoraId',
+          accessor: 'sourceAccountId',
           title: t('movements.from'),
-          render: (r) => accountName(r.cuentaEmisoraId),
+          render: (r) => accountName(r.sourceAccountId),
         },
         {
-          accessor: 'cuentaReceptoraId',
+          accessor: 'destinationAccountId',
           title: t('movements.to'),
-          render: (r) => accountName(r.cuentaReceptoraId),
+          render: (r) => accountName(r.destinationAccountId),
         },
         {
-          accessor: 'valor',
+          accessor: 'amount',
           title: t('common.amount'),
           textAlign: 'right',
           width: 140,
-          render: (r) => <Text fw={600}>{f.money(r.valor)}</Text>,
+          render: (r) => <Text fw={600}>{f.money(r.amount)}</Text>,
         },
         {
           accessor: 'actions',

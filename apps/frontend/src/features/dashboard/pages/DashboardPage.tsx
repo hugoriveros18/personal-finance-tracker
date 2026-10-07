@@ -1,14 +1,5 @@
 import { useState } from 'react';
-import {
-  Card,
-  Group,
-  NumberInput,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  Skeleton,
-} from '@mantine/core';
+import { Card, Group, NumberInput, SimpleGrid, Stack, Text, Title, Skeleton } from '@mantine/core';
 import { MonthPickerInput } from '@mantine/dates';
 import {
   Bar,
@@ -32,7 +23,6 @@ import { ChartShell } from '@/shared/components/ChartShell';
 import { chartTooltipProps } from '@/shared/components/chartTooltip';
 import { useFormatters } from '@/shared/hooks/useFormatters';
 import { dashboardKeys, fetchDashboard } from '../api/dashboard';
-import { todayYYYYMM } from '@/shared/lib/dates';
 import { colorAt } from '@/shared/lib/chartColors';
 
 export default function DashboardPage() {
@@ -46,25 +36,26 @@ export default function DashboardPage() {
     queryFn: () => fetchDashboard({ month: monthStr, year }),
   });
 
-  const totalExpenses = (data?.monthSummary.egresos ?? 0) + (data?.monthSummary.pasivosNuevos ?? 0);
+  const totalExpenses =
+    (data?.monthSummary.expenses ?? 0) + (data?.monthSummary.newLiabilities ?? 0);
   // Balance shown on the card must match the visible "Egresos" figure, which
   // includes new liabilities — so subtract totalExpenses, not monthSummary.flow
-  // (which only nets income against pure egresos).
-  const balance = data ? (data.monthSummary.ingresos ?? 0) - totalExpenses : undefined;
+  // (which only nets income against pure expenses).
+  const balance = data ? (data.monthSummary.income ?? 0) - totalExpenses : undefined;
   const incomeBars = (data?.trendYear.months ?? []).map((m, i) => ({
     month: m.split('-')[1],
-    valor: data?.trendYear.ingresos[i] ?? 0,
+    amount: data?.trendYear.income[i] ?? 0,
   }));
   const expensesBars = (data?.trendYear.months ?? []).map((m, i) => ({
     month: m.split('-')[1],
-    valor: (data?.trendYear.egresos[i] ?? 0) + (data?.trendYear.pasivosNuevos[i] ?? 0),
+    amount: (data?.trendYear.expenses[i] ?? 0) + (data?.trendYear.newLiabilities[i] ?? 0),
   }));
   const savingsBars = (data?.trendYear.months ?? []).map((m, i) => ({
     month: m.split('-')[1],
-    valor: data?.trendYear.ahorroDelta[i] ?? 0,
+    amount: data?.trendYear.savingsChange[i] ?? 0,
   }));
-  const topMonth = data?.topCategoriesMonth.egreso ?? [];
-  const topYear = data?.topCategoriesYear.egreso ?? [];
+  const topMonth = data?.topCategoriesMonth.expense ?? [];
+  const topYear = data?.topCategoriesYear.expense ?? [];
 
   const chartTooltip = chartTooltipProps;
 
@@ -105,7 +96,7 @@ export default function DashboardPage() {
                   {t('dashboard.income')}
                 </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.monthSummary.ingresos} fw={700} fz="lg" c="teal.7" />
+                  <MoneyDisplay value={data?.monthSummary.income} fw={700} fz="lg" c="teal.7" />
                 </Skeleton>
               </Stack>
               <Stack gap={0}>
@@ -126,10 +117,10 @@ export default function DashboardPage() {
               </Stack>
               <Stack gap={0}>
                 <Text size="xs" c="dimmed">
-                  {t('dashboard.ahorroVariacion')}
+                  {t('dashboard.savingsChange')}
                 </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.monthSummary.ahorroDelta} signed fw={700} fz="lg" />
+                  <MoneyDisplay value={data?.monthSummary.savingsChange} signed fw={700} fz="lg" />
                 </Skeleton>
               </Stack>
             </SimpleGrid>
@@ -144,25 +135,38 @@ export default function DashboardPage() {
             </Text>
             <SimpleGrid cols={2} spacing="xs" mt="sm">
               <Stack gap={0}>
-                <Text size="xs" c="dimmed">{t('dashboard.disponible')}</Text>
+                <Text size="xs" c="dimmed">
+                  {t('dashboard.availableBalance')}
+                </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.totals.disponibleTotal} fw={700} fz="lg" />
+                  <MoneyDisplay value={data?.totals.availableBalanceTotal} fw={700} fz="lg" />
                 </Skeleton>
               </Stack>
               <Stack gap={0}>
-                <Text size="xs" c="dimmed">{t('dashboard.ahorro')}</Text>
+                <Text size="xs" c="dimmed">
+                  {t('dashboard.savingsBalance')}
+                </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.totals.ahorroTotal} fw={700} fz="lg" />
+                  <MoneyDisplay value={data?.totals.savingsBalanceTotal} fw={700} fz="lg" />
                 </Skeleton>
               </Stack>
               <Stack gap={0}>
-                <Text size="xs" c="dimmed">{t('dashboard.pasivos')}</Text>
+                <Text size="xs" c="dimmed">
+                  {t('dashboard.liabilitiesBalance')}
+                </Text>
                 <Skeleton visible={isLoading}>
-                  <MoneyDisplay value={data?.totals.pasivosTotal} fw={700} fz="lg" c="red.7" />
+                  <MoneyDisplay
+                    value={data?.totals.liabilitiesBalanceTotal}
+                    fw={700}
+                    fz="lg"
+                    c="red.7"
+                  />
                 </Skeleton>
               </Stack>
               <Stack gap={0}>
-                <Text size="xs" c="dimmed">{t('dashboard.netWorth')}</Text>
+                <Text size="xs" c="dimmed">
+                  {t('dashboard.netWorth')}
+                </Text>
                 <Skeleton visible={isLoading}>
                   <MoneyDisplay value={data?.totals.netWorth} fw={700} fz="lg" c="teal.7" />
                 </Skeleton>
@@ -177,30 +181,51 @@ export default function DashboardPage() {
           <BarChart data={incomeBars}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--mantine-color-default-border)" />
             <XAxis dataKey="month" stroke="currentColor" fontSize={11} />
-            <YAxis stroke="currentColor" fontSize={11} tickFormatter={(v: number) => f.money(v)} width={80} />
+            <YAxis
+              stroke="currentColor"
+              fontSize={11}
+              tickFormatter={(v: number) => f.money(v)}
+              width={80}
+            />
             <Tooltip {...chartTooltip} formatter={(v: number) => f.money(v)} />
-            <Bar dataKey="valor" fill="var(--mantine-color-teal-6)" />
+            <Bar dataKey="amount" fill="var(--mantine-color-teal-6)" />
           </BarChart>
         </ChartShell>
         <ChartShell title={t('dashboard.expensesMonths')} subtitle={String(year)}>
           <BarChart data={expensesBars}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--mantine-color-default-border)" />
             <XAxis dataKey="month" stroke="currentColor" fontSize={11} />
-            <YAxis stroke="currentColor" fontSize={11} tickFormatter={(v: number) => f.money(v)} width={80} />
+            <YAxis
+              stroke="currentColor"
+              fontSize={11}
+              tickFormatter={(v: number) => f.money(v)}
+              width={80}
+            />
             <Tooltip {...chartTooltip} formatter={(v: number) => f.money(v)} />
-            <Bar dataKey="valor" fill="var(--mantine-color-orange-6)" />
+            <Bar dataKey="amount" fill="var(--mantine-color-orange-6)" />
           </BarChart>
         </ChartShell>
       </SimpleGrid>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <ChartShell title={t('dashboard.ahorroVariacionMonths')} subtitle={String(year)}>
+        <ChartShell title={t('dashboard.savingsChangeMonths')} subtitle={String(year)}>
           <LineChart data={savingsBars}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--mantine-color-default-border)" />
             <XAxis dataKey="month" stroke="currentColor" fontSize={11} />
-            <YAxis stroke="currentColor" fontSize={11} tickFormatter={(v: number) => f.money(v)} width={80} />
+            <YAxis
+              stroke="currentColor"
+              fontSize={11}
+              tickFormatter={(v: number) => f.money(v)}
+              width={80}
+            />
             <Tooltip {...chartTooltip} formatter={(v: number) => f.money(v)} />
-            <Line type="monotone" dataKey="valor" stroke="var(--mantine-color-cyan-6)" strokeWidth={2} dot />
+            <Line
+              type="monotone"
+              dataKey="amount"
+              stroke="var(--mantine-color-cyan-6)"
+              strokeWidth={2}
+              dot
+            />
           </LineChart>
         </ChartShell>
         <ChartShell
@@ -213,7 +238,7 @@ export default function DashboardPage() {
             <Pie
               data={topMonth}
               dataKey="total"
-              nameKey="nombre"
+              nameKey="name"
               innerRadius="40%"
               outerRadius="70%"
               paddingAngle={2}
@@ -235,10 +260,19 @@ export default function DashboardPage() {
         empty={topYear.length === 0}
         emptyText={t('dashboard.noCategoryData')}
       >
-        <BarChart data={topYear} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
+        <BarChart
+          data={topYear}
+          layout="vertical"
+          margin={{ top: 8, right: 24, bottom: 8, left: 24 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--mantine-color-default-border)" />
-          <XAxis type="number" stroke="currentColor" fontSize={11} tickFormatter={(v: number) => f.money(v)} />
-          <YAxis type="category" dataKey="nombre" stroke="currentColor" fontSize={11} width={140} />
+          <XAxis
+            type="number"
+            stroke="currentColor"
+            fontSize={11}
+            tickFormatter={(v: number) => f.money(v)}
+          />
+          <YAxis type="category" dataKey="name" stroke="currentColor" fontSize={11} width={140} />
           <Tooltip {...chartTooltip} formatter={(v: number) => f.money(v)} />
           <Bar dataKey="total" fill="var(--mantine-color-orange-6)" />
         </BarChart>

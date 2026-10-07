@@ -3,48 +3,68 @@ import { deltasForMovement } from './service.js';
 import { createMovementSchema } from './schemas.js';
 
 describe('deltasForMovement', () => {
-  it('INTER_DISPONIBLE moves disponible across two accounts', () => {
-    const { emisora, receptora } = deltasForMovement('INTER_DISPONIBLE', 100_000n);
-    expect(emisora).toEqual({ disponible: -100_000n, ahorro: 0n, pasivos: 0n });
-    expect(receptora).toEqual({ disponible: 100_000n, ahorro: 0n, pasivos: 0n });
+  it('INTER_AVAILABLE moves availableBalance across two accounts', () => {
+    const { source, destination } = deltasForMovement('INTER_AVAILABLE', 100_000n);
+    expect(source).toEqual({
+      availableBalance: -100_000n,
+      savingsBalance: 0n,
+      liabilitiesBalance: 0n,
+    });
+    expect(destination).toEqual({
+      availableBalance: 100_000n,
+      savingsBalance: 0n,
+      liabilitiesBalance: 0n,
+    });
   });
 
-  it('INTRA_DISPONIBLE_TO_AHORRO moves money inside one account', () => {
-    const { emisora, receptora } = deltasForMovement('INTRA_DISPONIBLE_TO_AHORRO', 50_000n);
-    expect(emisora).toEqual({ disponible: -50_000n, ahorro: 50_000n, pasivos: 0n });
-    expect(receptora).toEqual({ disponible: 0n, ahorro: 0n, pasivos: 0n });
+  it('INTRA_AVAILABLE_TO_SAVINGS moves money inside one account', () => {
+    const { source, destination } = deltasForMovement('INTRA_AVAILABLE_TO_SAVINGS', 50_000n);
+    expect(source).toEqual({
+      availableBalance: -50_000n,
+      savingsBalance: 50_000n,
+      liabilitiesBalance: 0n,
+    });
+    expect(destination).toEqual({
+      availableBalance: 0n,
+      savingsBalance: 0n,
+      liabilitiesBalance: 0n,
+    });
   });
 
-  it('INTRA_AHORRO_TO_DISPONIBLE is the inverse of the previous flujo', () => {
-    const { emisora } = deltasForMovement('INTRA_AHORRO_TO_DISPONIBLE', 50_000n);
-    expect(emisora).toEqual({ disponible: 50_000n, ahorro: -50_000n, pasivos: 0n });
+  it('INTRA_SAVINGS_TO_AVAILABLE is the inverse of the previous flow', () => {
+    const { source } = deltasForMovement('INTRA_SAVINGS_TO_AVAILABLE', 50_000n);
+    expect(source).toEqual({
+      availableBalance: 50_000n,
+      savingsBalance: -50_000n,
+      liabilitiesBalance: 0n,
+    });
   });
 
-  it('INTER_DISPONIBLE preserves system-wide sum (zero-sum)', () => {
-    const { emisora, receptora } = deltasForMovement('INTER_DISPONIBLE', 75_000n);
-    expect(emisora.disponible + receptora.disponible).toBe(0n);
+  it('INTER_AVAILABLE preserves system-wide sum (zero-sum)', () => {
+    const { source, destination } = deltasForMovement('INTER_AVAILABLE', 75_000n);
+    expect(source.availableBalance + destination.availableBalance).toBe(0n);
   });
 
-  it('INTRA_* preserves total = disponible + ahorro on the same account', () => {
-    const { emisora } = deltasForMovement('INTRA_DISPONIBLE_TO_AHORRO', 12_345n);
-    expect(emisora.disponible + emisora.ahorro).toBe(0n);
+  it('INTRA_* preserves total = availableBalance + savingsBalance on the same account', () => {
+    const { source } = deltasForMovement('INTRA_AVAILABLE_TO_SAVINGS', 12_345n);
+    expect(source.availableBalance + source.savingsBalance).toBe(0n);
   });
 });
 
 describe('createMovementSchema', () => {
   const baseInter = {
-    descripcion: 'transfer',
-    fecha: '2026-04-27',
-    flujo: 'INTER_DISPONIBLE' as const,
-    valor: 10_000,
-    cuentaEmisoraId: '11111111-1111-4111-8111-111111111111',
-    cuentaReceptoraId: '22222222-2222-4222-8222-222222222222',
+    description: 'transfer',
+    date: '2026-04-27',
+    flow: 'INTER_AVAILABLE' as const,
+    amount: 10_000,
+    sourceAccountId: '11111111-1111-4111-8111-111111111111',
+    destinationAccountId: '22222222-2222-4222-8222-222222222222',
   };
 
-  it('rejects INTER_DISPONIBLE with same emisora and receptora', () => {
+  it('rejects INTER_AVAILABLE with same source and destination', () => {
     const r = createMovementSchema.safeParse({
       ...baseInter,
-      cuentaReceptoraId: baseInter.cuentaEmisoraId,
+      destinationAccountId: baseInter.sourceAccountId,
     });
     expect(r.success).toBe(false);
   });
@@ -52,21 +72,21 @@ describe('createMovementSchema', () => {
   it('rejects INTRA_* with different accounts on each side', () => {
     const r = createMovementSchema.safeParse({
       ...baseInter,
-      flujo: 'INTRA_DISPONIBLE_TO_AHORRO',
+      flow: 'INTRA_AVAILABLE_TO_SAVINGS',
     });
     expect(r.success).toBe(false);
   });
 
-  it('accepts well-shaped INTER_DISPONIBLE', () => {
+  it('accepts well-shaped INTER_AVAILABLE', () => {
     const r = createMovementSchema.safeParse(baseInter);
     expect(r.success).toBe(true);
   });
 
-  it('accepts well-shaped INTRA_DISPONIBLE_TO_AHORRO', () => {
+  it('accepts well-shaped INTRA_AVAILABLE_TO_SAVINGS', () => {
     const r = createMovementSchema.safeParse({
       ...baseInter,
-      flujo: 'INTRA_DISPONIBLE_TO_AHORRO',
-      cuentaReceptoraId: baseInter.cuentaEmisoraId,
+      flow: 'INTRA_AVAILABLE_TO_SAVINGS',
+      destinationAccountId: baseInter.sourceAccountId,
     });
     expect(r.success).toBe(true);
   });

@@ -14,8 +14,8 @@ const schema = z.object({
     .string()
     .optional()
     .transform((s) => (s ? s.split(',').filter(Boolean) : [])),
-  valorMin: z.coerce.number().int().nonnegative().optional(),
-  valorMax: z.coerce.number().int().nonnegative().optional(),
+  amountMin: z.coerce.number().int().nonnegative().optional(),
+  amountMax: z.coerce.number().int().nonnegative().optional(),
 });
 
 export default function LiabilityPaymentsPage() {
@@ -30,7 +30,7 @@ export default function LiabilityPaymentsPage() {
           <Group wrap="wrap">
             <MultiSelect
               placeholder={t('common.account')}
-              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.nombre }))}
+              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
               value={filters.accountIds}
               onChange={(v) => setFilters({ accountIds: v.join(',') as never })}
               searchable
@@ -39,23 +39,20 @@ export default function LiabilityPaymentsPage() {
             />
             <MoneyInput
               placeholder={t('common.min')}
-              value={filters.valorMin ?? null}
-              onChange={(v) => setFilters({ valorMin: v ?? undefined })}
+              value={filters.amountMin ?? null}
+              onChange={(v) => setFilters({ amountMin: v ?? undefined })}
               w={130}
             />
             <MoneyInput
               placeholder={t('common.max')}
-              value={filters.valorMax ?? null}
-              onChange={(v) => setFilters({ valorMax: v ?? undefined })}
+              value={filters.amountMax ?? null}
+              onChange={(v) => setFilters({ amountMax: v ?? undefined })}
               w={130}
             />
           </Group>
         </Stack>
       </Card>
-      <LiabilityPaymentsTable
-        filterAccountIds={filters.accountIds}
-        filterMonth={filters.month}
-      />
+      <LiabilityPaymentsTable filterAccountIds={filters.accountIds} filterMonth={filters.month} />
     </Page>
   );
 }

@@ -9,24 +9,24 @@ import { MovementsTable } from '../components/MovementsTable';
 import { openMovementFormModal } from '../components/MovementFormModal';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { MoneyInput } from '@/shared/components/MoneyInput';
-import type { MovementFlujo } from '@/shared/types/domain';
+import type { MovementFlow } from '@/shared/types/domain';
 
 const schema = z.object({
   month: z.string().optional(),
-  emisoraIds: z
+  sourceAccountIds: z
     .string()
     .optional()
     .transform((s) => (s ? s.split(',').filter(Boolean) : [])),
-  receptoraIds: z
+  destinationAccountIds: z
     .string()
     .optional()
     .transform((s) => (s ? s.split(',').filter(Boolean) : [])),
-  flujos: z
+  flows: z
     .string()
     .optional()
-    .transform((s) => (s ? (s.split(',').filter(Boolean) as MovementFlujo[]) : [])),
-  valorMin: z.coerce.number().int().nonnegative().optional(),
-  valorMax: z.coerce.number().int().nonnegative().optional(),
+    .transform((s) => (s ? (s.split(',').filter(Boolean) as MovementFlow[]) : [])),
+  amountMin: z.coerce.number().int().nonnegative().optional(),
+  amountMax: z.coerce.number().int().nonnegative().optional(),
 });
 
 export default function MovementsPage() {
@@ -49,18 +49,18 @@ export default function MovementsPage() {
           <Group wrap="wrap">
             <MultiSelect
               placeholder={t('movements.from')}
-              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.nombre }))}
-              value={filters.emisoraIds}
-              onChange={(v) => setFilters({ emisoraIds: v.join(',') as never })}
+              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
+              value={filters.sourceAccountIds}
+              onChange={(v) => setFilters({ sourceAccountIds: v.join(',') as never })}
               searchable
               clearable
               w={200}
             />
             <MultiSelect
               placeholder={t('movements.to')}
-              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.nombre }))}
-              value={filters.receptoraIds}
-              onChange={(v) => setFilters({ receptoraIds: v.join(',') as never })}
+              data={(accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
+              value={filters.destinationAccountIds}
+              onChange={(v) => setFilters({ destinationAccountIds: v.join(',') as never })}
               searchable
               clearable
               w={200}
@@ -68,42 +68,42 @@ export default function MovementsPage() {
             <MultiSelect
               placeholder={t('common.type')}
               data={[
-                { value: 'INTER_DISPONIBLE', label: t('movements.flujo.INTER_DISPONIBLE') },
+                { value: 'INTER_AVAILABLE', label: t('movements.flow.INTER_AVAILABLE') },
                 {
-                  value: 'INTRA_DISPONIBLE_TO_AHORRO',
-                  label: t('movements.flujo.INTRA_DISPONIBLE_TO_AHORRO'),
+                  value: 'INTRA_AVAILABLE_TO_SAVINGS',
+                  label: t('movements.flow.INTRA_AVAILABLE_TO_SAVINGS'),
                 },
                 {
-                  value: 'INTRA_AHORRO_TO_DISPONIBLE',
-                  label: t('movements.flujo.INTRA_AHORRO_TO_DISPONIBLE'),
+                  value: 'INTRA_SAVINGS_TO_AVAILABLE',
+                  label: t('movements.flow.INTRA_SAVINGS_TO_AVAILABLE'),
                 },
               ]}
-              value={filters.flujos}
-              onChange={(v) => setFilters({ flujos: v.join(',') as never })}
+              value={filters.flows}
+              onChange={(v) => setFilters({ flows: v.join(',') as never })}
               clearable
               w={220}
             />
             <MoneyInput
               placeholder={t('common.min')}
-              value={filters.valorMin ?? null}
-              onChange={(v) => setFilters({ valorMin: v ?? undefined })}
+              value={filters.amountMin ?? null}
+              onChange={(v) => setFilters({ amountMin: v ?? undefined })}
               w={130}
             />
             <MoneyInput
               placeholder={t('common.max')}
-              value={filters.valorMax ?? null}
-              onChange={(v) => setFilters({ valorMax: v ?? undefined })}
+              value={filters.amountMax ?? null}
+              onChange={(v) => setFilters({ amountMax: v ?? undefined })}
               w={130}
             />
             <Button
               variant="subtle"
               onClick={() =>
                 setFilters({
-                  emisoraIds: '' as never,
-                  receptoraIds: '' as never,
-                  flujos: '' as never,
-                  valorMin: undefined,
-                  valorMax: undefined,
+                  sourceAccountIds: '' as never,
+                  destinationAccountIds: '' as never,
+                  flows: '' as never,
+                  amountMin: undefined,
+                  amountMax: undefined,
                   month: undefined,
                 })
               }
@@ -114,11 +114,11 @@ export default function MovementsPage() {
         </Stack>
       </Card>
       <MovementsTable
-        filterEmisoraIds={filters.emisoraIds}
-        filterReceptoraIds={filters.receptoraIds}
-        filterFlujos={filters.flujos}
-        filterValorMin={filters.valorMin}
-        filterValorMax={filters.valorMax}
+        filterSourceAccountIds={filters.sourceAccountIds}
+        filterDestinationAccountIds={filters.destinationAccountIds}
+        filterFlows={filters.flows}
+        filterAmountMin={filters.amountMin}
+        filterAmountMax={filters.amountMax}
         filterMonth={filters.month}
       />
     </Page>

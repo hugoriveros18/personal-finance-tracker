@@ -1,14 +1,14 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { idParamSchema } from '../../shared/zod.js';
 import { createAccountSchema, updateAccountSchema } from './schemas.js';
 
-export const accountsRoutes: FastifyPluginAsync = async (app) => {
+export const accountsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.requireAuth);
 
   app.get('/', async (req) => {
     const items = await app.prisma.account.findMany({
       where: { userId: req.userId },
-      orderBy: { nombre: 'asc' },
+      orderBy: { name: 'asc' },
     });
     return { items };
   });
@@ -21,15 +21,15 @@ export const accountsRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post('/', { schema: { body: createAccountSchema } }, async (req, reply) => {
-    const { nombre, disponible, ahorro, pasivos } = req.body;
+    const { name, availableBalance, savingsBalance, liabilitiesBalance } = req.body;
     const item = await app.prisma.account.create({
       data: {
         userId: req.userId,
-        nombre,
-        disponible: BigInt(disponible),
-        ahorro: BigInt(ahorro),
-        pasivos: BigInt(pasivos),
-        total: BigInt(disponible) + BigInt(ahorro),
+        name,
+        availableBalance: BigInt(availableBalance),
+        savingsBalance: BigInt(savingsBalance),
+        liabilitiesBalance: BigInt(liabilitiesBalance),
+        total: BigInt(availableBalance) + BigInt(savingsBalance),
       },
     });
     return reply.code(201).send({ item });

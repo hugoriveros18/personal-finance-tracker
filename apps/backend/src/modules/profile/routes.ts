@@ -3,16 +3,21 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import argon2 from 'argon2';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { config } from '../../config.js';
 import { AuthService, publicUser } from '../auth/service.js';
 import { AppError, Conflict } from '../../shared/errors.js';
 import { changePasswordSchema, patchProfileSchema } from './schemas.js';
 
 const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
-const ARGON2_OPTS = { type: argon2.argon2id, memoryCost: 19_456, timeCost: 2, parallelism: 1 } as const;
+const ARGON2_OPTS = {
+  type: argon2.argon2id,
+  memoryCost: 19_456,
+  timeCost: 2,
+  parallelism: 1,
+} as const;
 
-export const profileRoutes: FastifyPluginAsync = async (app) => {
+export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
   const auth = new AuthService(app.prisma);
 
   app.addHook('preHandler', app.requireAuth);
