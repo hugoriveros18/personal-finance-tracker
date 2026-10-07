@@ -8,17 +8,17 @@ import {
 } from '../../shared/zod.js';
 
 export const createLiabilityPaymentSchema = z.object({
-  descripcion: z.string().min(1).max(200).trim(),
-  fecha: dateOnlySchema,
-  valor: moneyPositiveIntSchema,
+  description: z.string().min(1).max(200).trim(),
+  date: dateOnlySchema,
+  amount: moneyPositiveIntSchema,
   accountId: uuidSchema,
 });
 
 export const updateLiabilityPaymentSchema = z
   .object({
-    descripcion: z.string().min(1).max(200).trim().optional(),
-    fecha: dateOnlySchema.optional(),
-    valor: moneyPositiveIntSchema.optional(),
+    description: z.string().min(1).max(200).trim().optional(),
+    date: dateOnlySchema.optional(),
+    amount: moneyPositiveIntSchema.optional(),
     accountId: uuidSchema.optional(),
   })
   .strict();
@@ -36,6 +36,6 @@ export const listLiabilityPaymentsQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   accountIds: csvSchema(uuidSchema),
-  valorMin: z.coerce.number().int().nonnegative().optional(),
-  valorMax: z.coerce.number().int().nonnegative().optional(),
+  amountMin: z.coerce.number().int().nonnegative().optional(),
+  amountMax: z.coerce.number().int().nonnegative().optional(),
 });

@@ -10,7 +10,7 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string) => ({
-      matches: false,
+      matches: query.trim() === '',
       media: query,
       onchange: null,
       addListener: () => {},
@@ -21,3 +21,14 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }),
   });
 }
+
+// Mantine's selects and date pickers observe their popovers in the browser.
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+});
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { writable: true, value: () => {} });

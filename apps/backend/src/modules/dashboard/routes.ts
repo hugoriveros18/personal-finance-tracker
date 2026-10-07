@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { monthRange, formatYYYYMM, yearRange } from '../../shared/dates.js';
 import { monthSchema } from '../../shared/zod.js';
@@ -11,7 +11,7 @@ const dashboardQuerySchema = z.object({
 const TOP_N = 5;
 const RECENT_LIMIT = 10;
 
-export const dashboardRoutes: FastifyPluginAsync = async (app) => {
+export const dashboardRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.requireAuth);
 
   app.get('/', { schema: { querystring: dashboardQuerySchema } }, async (req) => {
@@ -37,197 +37,204 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     ] = await Promise.all([
       app.prisma.account.findMany({
         where: { userId },
-        orderBy: { nombre: 'asc' },
+        orderBy: { name: 'asc' },
       }),
       app.prisma.transaction.findMany({
-        where: { userId, fecha: { gte: monthFrom, lte: monthTo } },
-        select: { tipo: true, valor: true, accountId: true, categoryId: true },
+        where: { userId, date: { gte: monthFrom, lte: monthTo } },
+        select: { type: true, amount: true, accountId: true, categoryId: true },
       }),
       app.prisma.liabilityPayment.findMany({
-        where: { userId, fecha: { gte: monthFrom, lte: monthTo } },
-        select: { valor: true, accountId: true },
+        where: { userId, date: { gte: monthFrom, lte: monthTo } },
+        select: { amount: true, accountId: true },
       }),
       app.prisma.movement.findMany({
-        where: { userId, fecha: { gte: monthFrom, lte: monthTo } },
-        select: { flujo: true, valor: true },
+        where: { userId, date: { gte: monthFrom, lte: monthTo } },
+        select: { flow: true, amount: true },
       }),
       app.prisma.transaction.findMany({
-        where: { userId, fecha: { gte: yearFrom, lte: yearTo } },
-        select: { tipo: true, valor: true, fecha: true, categoryId: true },
+        where: { userId, date: { gte: yearFrom, lte: yearTo } },
+        select: { type: true, amount: true, date: true, categoryId: true },
       }),
       app.prisma.liabilityPayment.findMany({
-        where: { userId, fecha: { gte: yearFrom, lte: yearTo } },
-        select: { valor: true, fecha: true },
+        where: { userId, date: { gte: yearFrom, lte: yearTo } },
+        select: { amount: true, date: true },
       }),
       app.prisma.movement.findMany({
-        where: { userId, fecha: { gte: yearFrom, lte: yearTo } },
-        select: { flujo: true, valor: true, fecha: true },
+        where: { userId, date: { gte: yearFrom, lte: yearTo } },
+        select: { flow: true, amount: true, date: true },
       }),
       app.prisma.category.findMany({ where: { userId } }),
       app.prisma.transaction.findMany({
         where: { userId },
-        orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
         take: RECENT_LIMIT,
       }),
       app.prisma.movement.findMany({
         where: { userId },
-        orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
         take: 5,
       }),
       app.prisma.liabilityPayment.findMany({
         where: { userId },
-        orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
         take: 5,
       }),
     ]);
 
-    const catName = new Map(categoriesAll.map((c) => [c.id, c.nombre] as const));
-    const catTipo = new Map(categoriesAll.map((c) => [c.id, c.tipo] as const));
+    const catName = new Map(categoriesAll.map((c) => [c.id, c.name] as const));
+    const categoryType = new Map(categoriesAll.map((c) => [c.id, c.type] as const));
 
     // Totals (today snapshot)
     const totals = accounts.reduce(
       (acc, a) => {
-        acc.disponibleTotal += Number(a.disponible);
-        acc.ahorroTotal += Number(a.ahorro);
-        acc.pasivosTotal += Number(a.pasivos);
+        acc.availableBalanceTotal += Number(a.availableBalance);
+        acc.savingsBalanceTotal += Number(a.savingsBalance);
+        acc.liabilitiesBalanceTotal += Number(a.liabilitiesBalance);
         return acc;
       },
-      { disponibleTotal: 0, ahorroTotal: 0, pasivosTotal: 0, netWorth: 0 },
+      { availableBalanceTotal: 0, savingsBalanceTotal: 0, liabilitiesBalanceTotal: 0, netWorth: 0 },
     );
-    totals.netWorth = totals.disponibleTotal + totals.ahorroTotal - totals.pasivosTotal;
+    totals.netWorth =
+      totals.availableBalanceTotal + totals.savingsBalanceTotal - totals.liabilitiesBalanceTotal;
 
     // Month summary
-    let ingresos = 0;
-    let egresos = 0;
-    let pasivosNuevos = 0;
+    let income = 0;
+    let expenses = 0;
+    let newLiabilities = 0;
     for (const t of txMonth) {
-      const v = Number(t.valor);
-      if (t.tipo === 'ingreso') ingresos += v;
-      else if (t.tipo === 'egreso') egresos += v;
-      else pasivosNuevos += v;
+      const v = Number(t.amount);
+      if (t.type === 'income') income += v;
+      else if (t.type === 'expense') expenses += v;
+      else newLiabilities += v;
     }
-    const liabilityPaymentsTotal = lpMonth.reduce((acc, p) => acc + Number(p.valor), 0);
-    let ahorroDelta = 0;
+    const liabilityPaymentsTotal = lpMonth.reduce((acc, p) => acc + Number(p.amount), 0);
+    let savingsChange = 0;
     for (const m of movMonth) {
-      const v = Number(m.valor);
-      if (m.flujo === 'INTRA_DISPONIBLE_TO_AHORRO') ahorroDelta += v;
-      else if (m.flujo === 'INTRA_AHORRO_TO_DISPONIBLE') ahorroDelta -= v;
+      const v = Number(m.amount);
+      if (m.flow === 'INTRA_AVAILABLE_TO_SAVINGS') savingsChange += v;
+      else if (m.flow === 'INTRA_SAVINGS_TO_AVAILABLE') savingsChange -= v;
     }
     const monthSummary = {
-      ingresos,
-      egresos,
-      pasivosNuevos,
+      income,
+      expenses,
+      newLiabilities,
       liabilityPayments: liabilityPaymentsTotal,
       movementsCount: movMonth.length,
-      ahorroDelta,
-      flow: ingresos - egresos,
+      savingsChange,
+      flow: income - expenses,
     };
 
-    // By category for the month (egreso + pasivo combined as "expenses")
-    const ingresoByCat = new Map<string, number>();
-    const egresoByCat = new Map<string, number>();
+    // By category for the month (expense + liability combined as "expenses")
+    const incomeByCategory = new Map<string, number>();
+    const expensesByCategory = new Map<string, number>();
     for (const t of txMonth) {
-      const v = Number(t.valor);
-      if (t.tipo === 'ingreso') {
-        ingresoByCat.set(t.categoryId, (ingresoByCat.get(t.categoryId) ?? 0) + v);
+      const v = Number(t.amount);
+      if (t.type === 'income') {
+        incomeByCategory.set(t.categoryId, (incomeByCategory.get(t.categoryId) ?? 0) + v);
       } else {
-        egresoByCat.set(t.categoryId, (egresoByCat.get(t.categoryId) ?? 0) + v);
+        expensesByCategory.set(t.categoryId, (expensesByCategory.get(t.categoryId) ?? 0) + v);
       }
     }
     const toBreakdown = (m: Map<string, number>) =>
       [...m.entries()]
         .map(([categoryId, total]) => ({
           categoryId,
-          nombre: catName.get(categoryId) ?? '',
-          tipo: catTipo.get(categoryId) ?? null,
+          name: catName.get(categoryId) ?? '',
+          type: categoryType.get(categoryId) ?? null,
           total,
         }))
         .sort((a, b) => b.total - a.total);
 
     const byCategoryMonth = {
-      ingreso: toBreakdown(ingresoByCat),
-      egreso: toBreakdown(egresoByCat),
+      income: toBreakdown(incomeByCategory),
+      expense: toBreakdown(expensesByCategory),
     };
 
     // Top categories (year)
-    const ingresoByCatYear = new Map<string, number>();
-    const egresoByCatYear = new Map<string, number>();
+    const incomeByCategoryYear = new Map<string, number>();
+    const expensesByCategoryYear = new Map<string, number>();
     for (const t of txYear) {
-      const v = Number(t.valor);
-      if (t.tipo === 'ingreso') {
-        ingresoByCatYear.set(t.categoryId, (ingresoByCatYear.get(t.categoryId) ?? 0) + v);
+      const v = Number(t.amount);
+      if (t.type === 'income') {
+        incomeByCategoryYear.set(t.categoryId, (incomeByCategoryYear.get(t.categoryId) ?? 0) + v);
       } else {
-        egresoByCatYear.set(t.categoryId, (egresoByCatYear.get(t.categoryId) ?? 0) + v);
+        expensesByCategoryYear.set(
+          t.categoryId,
+          (expensesByCategoryYear.get(t.categoryId) ?? 0) + v,
+        );
       }
     }
     const topYear = (m: Map<string, number>) => toBreakdown(m).slice(0, TOP_N);
     const topCategoriesYear = {
-      ingreso: topYear(ingresoByCatYear),
-      egreso: topYear(egresoByCatYear),
+      income: topYear(incomeByCategoryYear),
+      expense: topYear(expensesByCategoryYear),
     };
     const topCategoriesMonth = {
-      ingreso: byCategoryMonth.ingreso.slice(0, TOP_N),
-      egreso: byCategoryMonth.egreso.slice(0, TOP_N),
+      income: byCategoryMonth.income.slice(0, TOP_N),
+      expense: byCategoryMonth.expense.slice(0, TOP_N),
     };
 
     // By account (month)
     const byAccountMap = new Map<
       string,
-      { ingresos: number; egresos: number; pasivosNuevos: number; liabilityPayments: number }
+      { income: number; expenses: number; newLiabilities: number; liabilityPayments: number }
     >();
     for (const a of accounts) {
-      byAccountMap.set(a.id, { ingresos: 0, egresos: 0, pasivosNuevos: 0, liabilityPayments: 0 });
+      byAccountMap.set(a.id, { income: 0, expenses: 0, newLiabilities: 0, liabilityPayments: 0 });
     }
     for (const t of txMonth) {
       const ent = byAccountMap.get(t.accountId);
       if (!ent) continue;
-      const v = Number(t.valor);
-      if (t.tipo === 'ingreso') ent.ingresos += v;
-      else if (t.tipo === 'egreso') ent.egresos += v;
-      else ent.pasivosNuevos += v;
+      const v = Number(t.amount);
+      if (t.type === 'income') ent.income += v;
+      else if (t.type === 'expense') ent.expenses += v;
+      else ent.newLiabilities += v;
     }
     for (const p of lpMonth) {
       const ent = byAccountMap.get(p.accountId);
       if (!ent) continue;
-      ent.liabilityPayments += Number(p.valor);
+      ent.liabilityPayments += Number(p.amount);
     }
     const byAccount = accounts.map((a) => ({
       accountId: a.id,
-      nombre: a.nombre,
+      name: a.name,
       ...byAccountMap.get(a.id)!,
     }));
 
     // Trend (year, monthly buckets)
-    const months = Array.from({ length: 12 }, (_, i) => `${yearNum}-${String(i + 1).padStart(2, '0')}`);
-    const ingresosArr = new Array(12).fill(0);
-    const egresosArr = new Array(12).fill(0);
-    const pasivosArr = new Array(12).fill(0);
+    const months = Array.from(
+      { length: 12 },
+      (_, i) => `${yearNum}-${String(i + 1).padStart(2, '0')}`,
+    );
+    const incomeByMonth = new Array(12).fill(0);
+    const expensesByMonth = new Array(12).fill(0);
+    const newLiabilitiesByMonth = new Array(12).fill(0);
     const lpArr = new Array(12).fill(0);
-    const ahorroDeltaArr = new Array(12).fill(0);
+    const savingsChangeByMonth = new Array(12).fill(0);
     for (const t of txYear) {
-      const idx = t.fecha.getUTCMonth();
-      const v = Number(t.valor);
-      if (t.tipo === 'ingreso') ingresosArr[idx] += v;
-      else if (t.tipo === 'egreso') egresosArr[idx] += v;
-      else pasivosArr[idx] += v;
+      const idx = t.date.getUTCMonth();
+      const v = Number(t.amount);
+      if (t.type === 'income') incomeByMonth[idx] += v;
+      else if (t.type === 'expense') expensesByMonth[idx] += v;
+      else newLiabilitiesByMonth[idx] += v;
     }
     for (const p of lpYear) {
-      const idx = p.fecha.getUTCMonth();
-      lpArr[idx] += Number(p.valor);
+      const idx = p.date.getUTCMonth();
+      lpArr[idx] += Number(p.amount);
     }
     for (const m of movYear) {
-      const idx = m.fecha.getUTCMonth();
-      const v = Number(m.valor);
-      if (m.flujo === 'INTRA_DISPONIBLE_TO_AHORRO') ahorroDeltaArr[idx] += v;
-      else if (m.flujo === 'INTRA_AHORRO_TO_DISPONIBLE') ahorroDeltaArr[idx] -= v;
+      const idx = m.date.getUTCMonth();
+      const v = Number(m.amount);
+      if (m.flow === 'INTRA_AVAILABLE_TO_SAVINGS') savingsChangeByMonth[idx] += v;
+      else if (m.flow === 'INTRA_SAVINGS_TO_AVAILABLE') savingsChangeByMonth[idx] -= v;
     }
     const trendYear = {
       months,
-      ingresos: ingresosArr,
-      egresos: egresosArr,
-      pasivosNuevos: pasivosArr,
+      income: incomeByMonth,
+      expenses: expensesByMonth,
+      newLiabilities: newLiabilitiesByMonth,
       liabilityPayments: lpArr,
-      ahorroDelta: ahorroDeltaArr,
+      savingsChange: savingsChangeByMonth,
     };
 
     return {
@@ -264,13 +271,16 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       });
       const { from, to } = yearRange(year);
       const rows = await app.prisma.transaction.findMany({
-        where: { userId: req.userId, categoryId: id, fecha: { gte: from, lte: to } },
-        select: { valor: true, fecha: true },
+        where: { userId: req.userId, categoryId: id, date: { gte: from, lte: to } },
+        select: { amount: true, date: true },
       });
-      const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+      const months = Array.from(
+        { length: 12 },
+        (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
+      );
       const totals = new Array(12).fill(0);
       for (const r of rows) {
-        totals[r.fecha.getUTCMonth()] += Number(r.valor);
+        totals[r.date.getUTCMonth()] += Number(r.amount);
       }
       return { category: cat, year, months, totals };
     },

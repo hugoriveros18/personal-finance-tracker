@@ -1,5 +1,5 @@
 import { api } from '@/shared/api/client';
-import type { Movement, MovementFlujo, Paginated } from '@/shared/types/domain';
+import type { Movement, MovementFlow, Paginated } from '@/shared/types/domain';
 
 export const movementKeys = {
   all: ['movements'] as const,
@@ -14,12 +14,12 @@ export async function listMovements(
 }
 
 export async function createMovement(input: {
-  descripcion: string;
-  fecha: string;
-  flujo: MovementFlujo;
-  valor: number;
-  cuentaEmisoraId: string;
-  cuentaReceptoraId: string;
+  description: string;
+  date: string;
+  flow: MovementFlow;
+  amount: number;
+  sourceAccountId: string;
+  destinationAccountId: string;
 }): Promise<Movement> {
   const { data } = await api.post<{ item: Movement }>('/movements', input);
   return data.item;
@@ -28,12 +28,12 @@ export async function createMovement(input: {
 export async function updateMovement(
   id: string,
   input: Partial<{
-    descripcion: string;
-    fecha: string;
-    flujo: MovementFlujo;
-    valor: number;
-    cuentaEmisoraId: string;
-    cuentaReceptoraId: string;
+    description: string;
+    date: string;
+    flow: MovementFlow;
+    amount: number;
+    sourceAccountId: string;
+    destinationAccountId: string;
   }>,
 ): Promise<Movement> {
   const { data } = await api.patch<{ item: Movement }>(`/movements/${id}`, input);

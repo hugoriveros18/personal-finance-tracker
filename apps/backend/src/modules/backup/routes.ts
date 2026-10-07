@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { applyDeltaToAccount, deltaForTransaction } from '../transactions/service.js';
 import { lockAccountsForUpdate } from '../../shared/locking.js';
@@ -18,28 +18,29 @@ const importQuerySchema = z.object({
     .transform((v) => v === '1' || v === 'true'),
 });
 
-export const backupRoutes: FastifyPluginAsync = async (app) => {
+export const backupRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.requireAuth);
 
   app.get('/export', async (req, reply) => {
     const userId = req.userId;
-    const [user, categories, accounts, transactions, movements, liabilityPayments] = await Promise.all([
-      app.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-      app.prisma.category.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
-      app.prisma.account.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
-      app.prisma.transaction.findMany({
-        where: { userId },
-        orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
-      }),
-      app.prisma.movement.findMany({
-        where: { userId },
-        orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
-      }),
-      app.prisma.liabilityPayment.findMany({
-        where: { userId },
-        orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
-      }),
-    ]);
+    const [user, categories, accounts, transactions, movements, liabilityPayments] =
+      await Promise.all([
+        app.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+        app.prisma.category.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+        app.prisma.account.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+        app.prisma.transaction.findMany({
+          where: { userId },
+          orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+        }),
+        app.prisma.movement.findMany({
+          where: { userId },
+          orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+        }),
+        app.prisma.liabilityPayment.findMany({
+          where: { userId },
+          orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+        }),
+      ]);
 
     const catIdToExport = new Map<string, string>();
     categories.forEach((c, i) => catIdToExport.set(c.id, `c-${String(i + 1).padStart(4, '0')}`));
@@ -47,65 +48,72 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     accounts.forEach((a, i) => accIdToExport.set(a.id, `a-${String(i + 1).padStart(4, '0')}`));
 
     // For accounts, "initial" balance is reconstructed by reversing all activity
-    const initialByAccount = new Map<string, { disponible: bigint; ahorro: bigint; pasivos: bigint }>();
+    const initialByAccount = new Map<
+      string,
+      { availableBalance: bigint; savingsBalance: bigint; liabilitiesBalance: bigint }
+    >();
     for (const a of accounts) {
-      initialByAccount.set(a.id, { disponible: a.disponible, ahorro: a.ahorro, pasivos: a.pasivos });
+      initialByAccount.set(a.id, {
+        availableBalance: a.availableBalance,
+        savingsBalance: a.savingsBalance,
+        liabilitiesBalance: a.liabilitiesBalance,
+      });
     }
     for (const t of transactions) {
       const init = initialByAccount.get(t.accountId);
       if (!init) continue;
-      const d = deltaForTransaction(t.tipo, t.valor);
-      init.disponible -= d.disponible;
-      init.ahorro -= d.ahorro;
-      init.pasivos -= d.pasivos;
+      const d = deltaForTransaction(t.type, t.amount);
+      init.availableBalance -= d.availableBalance;
+      init.savingsBalance -= d.savingsBalance;
+      init.liabilitiesBalance -= d.liabilitiesBalance;
     }
     for (const m of movements) {
-      const ie = initialByAccount.get(m.cuentaEmisoraId);
-      const ir = initialByAccount.get(m.cuentaReceptoraId);
+      const ie = initialByAccount.get(m.sourceAccountId);
+      const ir = initialByAccount.get(m.destinationAccountId);
       if (!ie || !ir) continue;
-      if (m.flujo === 'INTER_DISPONIBLE') {
-        ie.disponible += m.valor;
-        ir.disponible -= m.valor;
-      } else if (m.flujo === 'INTRA_DISPONIBLE_TO_AHORRO') {
-        ie.disponible += m.valor;
-        ie.ahorro -= m.valor;
+      if (m.flow === 'INTER_AVAILABLE') {
+        ie.availableBalance += m.amount;
+        ir.availableBalance -= m.amount;
+      } else if (m.flow === 'INTRA_AVAILABLE_TO_SAVINGS') {
+        ie.availableBalance += m.amount;
+        ie.savingsBalance -= m.amount;
       } else {
-        ie.disponible -= m.valor;
-        ie.ahorro += m.valor;
+        ie.availableBalance -= m.amount;
+        ie.savingsBalance += m.amount;
       }
     }
     for (const p of liabilityPayments) {
       const init = initialByAccount.get(p.accountId);
       if (!init) continue;
-      init.disponible += p.valor;
-      init.pasivos += p.valor;
+      init.availableBalance += p.amount;
+      init.liabilitiesBalance += p.amount;
     }
 
     const envelope: ExportEnvelope = {
-      $schema: 'pft-export-v1',
+      $schema: 'pft-export-v2',
       exportedAt: new Date().toISOString(),
       appVersion: APP_VERSION,
       user: {
-        nombre: user.nombre,
-        apellidos: user.apellidos,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         preferredLanguage: user.preferredLanguage,
         preferredTheme: user.preferredTheme,
       },
       categories: categories.map((c) => ({
         exportId: catIdToExport.get(c.id)!,
-        nombre: c.nombre,
-        tipo: c.tipo,
+        name: c.name,
+        type: c.type,
       })),
       accounts: accounts.map((a) => {
         const init = initialByAccount.get(a.id)!;
         return {
           exportId: accIdToExport.get(a.id)!,
-          nombre: a.nombre,
+          name: a.name,
           initial: {
-            disponible: Number(init.disponible),
-            ahorro: Number(init.ahorro),
-            pasivos: Number(init.pasivos),
+            availableBalance: Number(init.availableBalance),
+            savingsBalance: Number(init.savingsBalance),
+            liabilitiesBalance: Number(init.liabilitiesBalance),
           },
         };
       }),
@@ -113,26 +121,26 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         exportId: `t-${String(i + 1).padStart(5, '0')}`,
         accountExportId: accIdToExport.get(t.accountId)!,
         categoryExportId: catIdToExport.get(t.categoryId)!,
-        descripcion: t.descripcion,
-        fecha: fmtDate(t.fecha),
-        tipo: t.tipo,
-        valor: Number(t.valor),
+        description: t.description,
+        date: fmtDate(t.date),
+        type: t.type,
+        amount: Number(t.amount),
       })),
       movements: movements.map((m, i) => ({
         exportId: `m-${String(i + 1).padStart(5, '0')}`,
-        cuentaEmisoraExportId: accIdToExport.get(m.cuentaEmisoraId)!,
-        cuentaReceptoraExportId: accIdToExport.get(m.cuentaReceptoraId)!,
-        flujo: m.flujo,
-        descripcion: m.descripcion,
-        fecha: fmtDate(m.fecha),
-        valor: Number(m.valor),
+        sourceAccountExportId: accIdToExport.get(m.sourceAccountId)!,
+        destinationAccountExportId: accIdToExport.get(m.destinationAccountId)!,
+        flow: m.flow,
+        description: m.description,
+        date: fmtDate(m.date),
+        amount: Number(m.amount),
       })),
       liabilityPayments: liabilityPayments.map((p, i) => ({
         exportId: `lp-${String(i + 1).padStart(5, '0')}`,
         accountExportId: accIdToExport.get(p.accountId)!,
-        descripcion: p.descripcion,
-        fecha: fmtDate(p.fecha),
-        valor: Number(p.valor),
+        description: p.description,
+        date: fmtDate(p.date),
+        amount: Number(p.amount),
       })),
     };
 
@@ -167,17 +175,29 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     }
     for (const t of envelope.transactions) {
       if (!catIds.has(t.categoryExportId) || !accIds.has(t.accountExportId)) {
-        throw new AppError(422, 'BROKEN_REFERENCE', `Transaction ${t.exportId} references missing category/account`);
+        throw new AppError(
+          422,
+          'BROKEN_REFERENCE',
+          `Transaction ${t.exportId} references missing category/account`,
+        );
       }
     }
     for (const m of envelope.movements) {
-      if (!accIds.has(m.cuentaEmisoraExportId) || !accIds.has(m.cuentaReceptoraExportId)) {
-        throw new AppError(422, 'BROKEN_REFERENCE', `Movement ${m.exportId} references missing account`);
+      if (!accIds.has(m.sourceAccountExportId) || !accIds.has(m.destinationAccountExportId)) {
+        throw new AppError(
+          422,
+          'BROKEN_REFERENCE',
+          `Movement ${m.exportId} references missing account`,
+        );
       }
     }
     for (const p of envelope.liabilityPayments) {
       if (!accIds.has(p.accountExportId)) {
-        throw new AppError(422, 'BROKEN_REFERENCE', `Liability payment ${p.exportId} references missing account`);
+        throw new AppError(
+          422,
+          'BROKEN_REFERENCE',
+          `Liability payment ${p.exportId} references missing account`,
+        );
       }
     }
 
@@ -212,8 +232,8 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         await tx.user.update({
           where: { id: userId },
           data: {
-            nombre: envelope.user.nombre,
-            apellidos: envelope.user.apellidos,
+            firstName: envelope.user.firstName,
+            lastName: envelope.user.lastName,
             preferredLanguage: envelope.user.preferredLanguage,
             preferredTheme: envelope.user.preferredTheme,
           },
@@ -223,7 +243,7 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         const catMap = new Map<string, string>();
         for (const c of envelope.categories) {
           const created = await tx.category.create({
-            data: { userId, nombre: c.nombre, tipo: c.tipo },
+            data: { userId, name: c.name, type: c.type },
           });
           catMap.set(c.exportId, created.id);
         }
@@ -231,14 +251,14 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         // Insert accounts with initial balances
         const accMap = new Map<string, string>();
         for (const a of envelope.accounts) {
-          const total = a.initial.disponible + a.initial.ahorro;
+          const total = a.initial.availableBalance + a.initial.savingsBalance;
           const created = await tx.account.create({
             data: {
               userId,
-              nombre: a.nombre,
-              disponible: BigInt(a.initial.disponible),
-              ahorro: BigInt(a.initial.ahorro),
-              pasivos: BigInt(a.initial.pasivos),
+              name: a.name,
+              availableBalance: BigInt(a.initial.availableBalance),
+              savingsBalance: BigInt(a.initial.savingsBalance),
+              liabilitiesBalance: BigInt(a.initial.liabilitiesBalance),
               total: BigInt(total),
             },
           });
@@ -246,76 +266,104 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         }
 
         // Replay transactions chronologically
-        const allEvents: Array<{ kind: 'tx' | 'mov' | 'lp'; fecha: string; idx: number }> = [
-          ...envelope.transactions.map((_, idx) => ({ kind: 'tx' as const, fecha: envelope.transactions[idx].fecha, idx })),
-          ...envelope.movements.map((_, idx) => ({ kind: 'mov' as const, fecha: envelope.movements[idx].fecha, idx })),
-          ...envelope.liabilityPayments.map((_, idx) => ({
+        const allEvents: Array<{ kind: 'tx' | 'mov' | 'lp'; date: string; idx: number }> = [
+          ...envelope.transactions.map((item, idx) => ({
+            kind: 'tx' as const,
+            date: item.date,
+            idx,
+          })),
+          ...envelope.movements.map((item, idx) => ({
+            kind: 'mov' as const,
+            date: item.date,
+            idx,
+          })),
+          ...envelope.liabilityPayments.map((item, idx) => ({
             kind: 'lp' as const,
-            fecha: envelope.liabilityPayments[idx].fecha,
+            date: item.date,
             idx,
           })),
         ];
-        allEvents.sort((a, b) => a.fecha.localeCompare(b.fecha));
+        allEvents.sort((a, b) => a.date.localeCompare(b.date));
 
         for (const ev of allEvents) {
           if (ev.kind === 'tx') {
-            const t = envelope.transactions[ev.idx];
+            const t = envelope.transactions[ev.idx]!;
             const accountId = accMap.get(t.accountExportId)!;
             const categoryId = catMap.get(t.categoryExportId)!;
             const cat = await tx.category.findUniqueOrThrow({ where: { id: categoryId } });
-            const valor = BigInt(t.valor);
+            const amount = BigInt(t.amount);
             await lockAccountsForUpdate(tx, userId, [accountId]);
-            await applyDeltaToAccount(tx, accountId, deltaForTransaction(t.tipo, valor));
+            await applyDeltaToAccount(tx, accountId, deltaForTransaction(t.type, amount));
             await tx.transaction.create({
               data: {
                 userId,
                 accountId,
                 categoryId,
-                categoryTipo: cat.tipo,
-                descripcion: t.descripcion,
-                fecha: new Date(`${t.fecha}T00:00:00.000Z`),
-                tipo: t.tipo,
-                valor,
+                categoryType: cat.type,
+                description: t.description,
+                date: new Date(`${t.date}T00:00:00.000Z`),
+                type: t.type,
+                amount,
               },
             });
           } else if (ev.kind === 'mov') {
-            const m = envelope.movements[ev.idx];
-            const emisora = accMap.get(m.cuentaEmisoraExportId)!;
-            const receptora = accMap.get(m.cuentaReceptoraExportId)!;
-            const valor = BigInt(m.valor);
-            await lockAccountsForUpdate(tx, userId, [emisora, receptora]);
-            if (m.flujo === 'INTER_DISPONIBLE') {
-              await applyDeltaToAccount(tx, emisora, { disponible: -valor, ahorro: 0n, pasivos: 0n });
-              await applyDeltaToAccount(tx, receptora, { disponible: valor, ahorro: 0n, pasivos: 0n });
-            } else if (m.flujo === 'INTRA_DISPONIBLE_TO_AHORRO') {
-              await applyDeltaToAccount(tx, emisora, { disponible: -valor, ahorro: valor, pasivos: 0n });
+            const m = envelope.movements[ev.idx]!;
+            const source = accMap.get(m.sourceAccountExportId)!;
+            const destination = accMap.get(m.destinationAccountExportId)!;
+            const amount = BigInt(m.amount);
+            await lockAccountsForUpdate(tx, userId, [source, destination]);
+            if (m.flow === 'INTER_AVAILABLE') {
+              await applyDeltaToAccount(tx, source, {
+                availableBalance: -amount,
+                savingsBalance: 0n,
+                liabilitiesBalance: 0n,
+              });
+              await applyDeltaToAccount(tx, destination, {
+                availableBalance: amount,
+                savingsBalance: 0n,
+                liabilitiesBalance: 0n,
+              });
+            } else if (m.flow === 'INTRA_AVAILABLE_TO_SAVINGS') {
+              await applyDeltaToAccount(tx, source, {
+                availableBalance: -amount,
+                savingsBalance: amount,
+                liabilitiesBalance: 0n,
+              });
             } else {
-              await applyDeltaToAccount(tx, emisora, { disponible: valor, ahorro: -valor, pasivos: 0n });
+              await applyDeltaToAccount(tx, source, {
+                availableBalance: amount,
+                savingsBalance: -amount,
+                liabilitiesBalance: 0n,
+              });
             }
             await tx.movement.create({
               data: {
                 userId,
-                cuentaEmisoraId: emisora,
-                cuentaReceptoraId: receptora,
-                flujo: m.flujo,
-                descripcion: m.descripcion,
-                fecha: new Date(`${m.fecha}T00:00:00.000Z`),
-                valor,
+                sourceAccountId: source,
+                destinationAccountId: destination,
+                flow: m.flow,
+                description: m.description,
+                date: new Date(`${m.date}T00:00:00.000Z`),
+                amount,
               },
             });
           } else {
-            const p = envelope.liabilityPayments[ev.idx];
+            const p = envelope.liabilityPayments[ev.idx]!;
             const accountId = accMap.get(p.accountExportId)!;
-            const valor = BigInt(p.valor);
+            const amount = BigInt(p.amount);
             await lockAccountsForUpdate(tx, userId, [accountId]);
-            await applyDeltaToAccount(tx, accountId, { disponible: -valor, ahorro: 0n, pasivos: -valor });
+            await applyDeltaToAccount(tx, accountId, {
+              availableBalance: -amount,
+              savingsBalance: 0n,
+              liabilitiesBalance: -amount,
+            });
             await tx.liabilityPayment.create({
               data: {
                 userId,
                 accountId,
-                descripcion: p.descripcion,
-                fecha: new Date(`${p.fecha}T00:00:00.000Z`),
-                valor,
+                description: p.description,
+                date: new Date(`${p.date}T00:00:00.000Z`),
+                amount,
               },
             });
           }

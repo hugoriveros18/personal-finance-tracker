@@ -13,7 +13,6 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import { IconDots, IconEdit, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,25 +30,19 @@ import {
   listCategories,
   updateCategory,
 } from '../api/categories';
-import type { Category, CategoryTipo } from '@/shared/types/domain';
+import type { Category, CategoryType } from '@/shared/types/domain';
 import { getApiErrorMessage } from '@/shared/api/client';
 import { CategoryDistributionChart } from '../components/CategoryDistributionChart';
 import { CategoryTrendChart } from '../components/CategoryTrendChart';
 
 const createSchema = z.object({
-  nombre: z.string().min(1).max(80),
-  tipo: z.enum(['ingreso', 'egreso']),
+  name: z.string().min(1).max(80),
+  type: z.enum(['income', 'expense']),
 });
 
 type FormValues = z.infer<typeof createSchema>;
 
-function CategoryFormModal({
-  initial,
-  onClose,
-}: {
-  initial?: Category;
-  onClose: () => void;
-}) {
+function CategoryFormModal({ initial, onClose }: { initial?: Category; onClose: () => void }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const isEdit = !!initial;
@@ -60,12 +53,12 @@ function CategoryFormModal({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { nombre: initial?.nombre ?? '', tipo: initial?.tipo ?? 'egreso' },
+    defaultValues: { name: initial?.name ?? '', type: initial?.type ?? 'expense' },
   });
   const onSubmit = handleSubmit(async (values) => {
     try {
       if (isEdit) {
-        await updateCategory(initial!.id, { nombre: values.nombre });
+        await updateCategory(initial!.id, { name: values.name });
       } else {
         await createCategory(values);
       }
@@ -82,13 +75,13 @@ function CategoryFormModal({
       <Stack>
         <TextInput
           label={t('common.name')}
-          {...register('nombre')}
-          error={errors.nombre?.message}
+          {...register('name')}
+          error={errors.name?.message}
           autoFocus
         />
         <Controller
           control={control}
-          name="tipo"
+          name="type"
           render={({ field }) => (
             <SegmentedControl
               fullWidth
@@ -96,15 +89,19 @@ function CategoryFormModal({
               onChange={(v) => field.onChange(v)}
               disabled={isEdit}
               data={[
-                { value: 'ingreso', label: t('categories.tipoIngreso') },
-                { value: 'egreso', label: t('categories.tipoEgreso') },
+                { value: 'income', label: t('categories.income') },
+                { value: 'expense', label: t('categories.expense') },
               ]}
             />
           )}
         />
         <Group justify="flex-end" mt="sm">
-          <Button variant="default" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button type="submit" loading={isSubmitting}>{t('common.save')}</Button>
+          <Button variant="default" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" loading={isSubmitting}>
+            {t('common.save')}
+          </Button>
         </Group>
       </Stack>
     </form>
@@ -123,7 +120,7 @@ function openCategoryModal(t: (k: string) => string, initial?: Category) {
 export default function CategoriesPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [tipo, setTipo] = useState<'all' | CategoryTipo>('all');
+  const [type, setType] = useState<'all' | CategoryType>('all');
   const { data: categories = [], isLoading } = useQuery({
     queryKey: categoryKeys.all,
     queryFn: () => listCategories(),
@@ -138,7 +135,7 @@ export default function CategoriesPage() {
     onError: (err) => notifications.show({ color: 'red', message: getApiErrorMessage(err) }),
   });
 
-  const filtered = tipo === 'all' ? categories : categories.filter((c) => c.tipo === tipo);
+  const filtered = type === 'all' ? categories : categories.filter((c) => c.type === type);
 
   return (
     <Page
@@ -152,12 +149,12 @@ export default function CategoriesPage() {
     >
       <Group>
         <SegmentedControl
-          value={tipo}
-          onChange={(v) => setTipo(v as 'all' | CategoryTipo)}
+          value={type}
+          onChange={(v) => setType(v as 'all' | CategoryType)}
           data={[
             { value: 'all', label: t('common.all') },
-            { value: 'ingreso', label: t('categories.tipoIngreso') },
-            { value: 'egreso', label: t('categories.tipoEgreso') },
+            { value: 'income', label: t('categories.income') },
+            { value: 'expense', label: t('categories.expense') },
           ]}
         />
       </Group>
@@ -175,9 +172,9 @@ export default function CategoriesPage() {
             <Card withBorder key={c.id} p="md">
               <Group justify="space-between" align="flex-start">
                 <Stack gap={4}>
-                  <Title order={5}>{c.nombre}</Title>
-                  <Badge color={c.tipo === 'ingreso' ? 'teal' : 'orange'} variant="light">
-                    {c.tipo === 'ingreso' ? t('categories.tipoIngreso') : t('categories.tipoEgreso')}
+                  <Title order={5}>{c.name}</Title>
+                  <Badge color={c.type === 'income' ? 'teal' : 'orange'} variant="light">
+                    {c.type === 'income' ? t('categories.income') : t('categories.expense')}
                   </Badge>
                 </Stack>
                 <Menu width={150} withinPortal position="bottom-end">
@@ -187,7 +184,10 @@ export default function CategoriesPage() {
                     </ActionIcon>
                   </Menu.Target>
                   <Menu.Dropdown>
-                    <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => openCategoryModal(t, c)}>
+                    <Menu.Item
+                      leftSection={<IconEdit size={14} />}
+                      onClick={() => openCategoryModal(t, c)}
+                    >
                       {t('common.edit')}
                     </Menu.Item>
                     <Menu.Item

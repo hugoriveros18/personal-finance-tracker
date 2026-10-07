@@ -17,8 +17,8 @@ const REFRESH_TTL_DAYS = 30;
 export function publicUser(u: User): UserPublic {
   return {
     id: u.id,
-    nombre: u.nombre,
-    apellidos: u.apellidos,
+    firstName: u.firstName,
+    lastName: u.lastName,
     email: u.email,
     avatarPath: u.avatarPath,
     preferredLanguage: u.preferredLanguage,
@@ -33,11 +33,11 @@ function sha256(s: string) {
 export class AuthService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async register(input: { nombre: string; apellidos: string; email: string; password: string }) {
+  async register(input: { firstName: string; lastName: string; email: string; password: string }) {
     if (config.SINGLE_USER_MODE) {
       const count = await this.prisma.user.count();
       if (count > 0) {
-        throw new Forbidden('Registration is disabled (single-user mode)');
+        throw Forbidden('Registration is disabled (single-user mode)');
       }
     }
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
@@ -47,8 +47,8 @@ export class AuthService {
     const passwordHash = await argon2.hash(input.password, ARGON2_OPTS);
     const user = await this.prisma.user.create({
       data: {
-        nombre: input.nombre,
-        apellidos: input.apellidos,
+        firstName: input.firstName,
+        lastName: input.lastName,
         email: input.email,
         passwordHash,
       },
@@ -93,7 +93,12 @@ export class AuthService {
       const newHash = sha256(raw);
       const expiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
       await tx.refreshToken.create({
-        data: { userId: stored.userId, tokenHash: newHash, expiresAt, userAgent: userAgent ?? null },
+        data: {
+          userId: stored.userId,
+          tokenHash: newHash,
+          expiresAt,
+          userAgent: userAgent ?? null,
+        },
       });
       return { raw, expiresAt, userId: stored.userId };
     });

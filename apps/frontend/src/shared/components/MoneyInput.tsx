@@ -1,7 +1,7 @@
 import { NumberInput, type NumberInputProps } from '@mantine/core';
 import { forwardRef } from 'react';
 
-// `value` is integer CENTAVOS (1 COP = 100 centavos). The input field shows
+// `value` is integer CENTS (1 COP = 100 cents). The input field shows
 // pesos with up to 2 decimals (es-CO: `,` decimal, `.` thousands).
 export type MoneyInputProps = Omit<NumberInputProps, 'value' | 'onChange'> & {
   value?: number | null;

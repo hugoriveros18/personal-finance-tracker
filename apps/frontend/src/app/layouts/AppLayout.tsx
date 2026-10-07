@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import { AppShell, Burger, Group, ScrollArea, Text, NavLink, ActionIcon, Menu, Avatar } from '@mantine/core';
+import {
+  AppShell,
+  Burger,
+  Group,
+  ScrollArea,
+  Text,
+  NavLink,
+  ActionIcon,
+  Menu,
+  Avatar,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconLayoutDashboard,
@@ -47,7 +56,7 @@ export function AppLayout() {
     navigate('/login');
   };
 
-  const initials = user ? (user.nombre[0] ?? '') + (user.apellidos[0] ?? '') : '';
+  const initials = user ? (user.firstName[0] ?? '') + (user.lastName[0] ?? '') : '';
 
   return (
     <AppShell
@@ -89,7 +98,7 @@ export function AppLayout() {
                   }}
                   fw={language === 'es' ? 700 : 400}
                 >
-                  Español
+                  {t('languages.es')}
                 </Menu.Item>
                 <Menu.Item
                   onClick={() => {
@@ -98,19 +107,14 @@ export function AppLayout() {
                   }}
                   fw={language === 'en' ? 700 : 400}
                 >
-                  English
+                  {t('languages.en')}
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
             <Menu width={200} position="bottom-end">
               <Menu.Target>
                 <ActionIcon variant="subtle" radius="xl" size={36} aria-label="Account">
-                  <Avatar
-                    src={user?.avatarPath ?? undefined}
-                    radius="xl"
-                    size={32}
-                    color="teal"
-                  >
+                  <Avatar src={user?.avatarPath ?? undefined} radius="xl" size={32} color="teal">
                     {initials}
                   </Avatar>
                 </ActionIcon>

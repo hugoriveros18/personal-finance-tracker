@@ -1,25 +1,25 @@
 import { api } from '@/shared/api/client';
-import type { Category, CategoryTipo } from '@/shared/types/domain';
+import type { Category, CategoryType } from '@/shared/types/domain';
 
 export const categoryKeys = {
   all: ['categories'] as const,
-  byTipo: (tipo?: CategoryTipo) => ['categories', tipo ?? 'all'] as const,
+  byType: (type?: CategoryType) => ['categories', type ?? 'all'] as const,
   trend: (id: string, year: number) => ['categories', id, 'trend', year] as const,
 };
 
-export async function listCategories(tipo?: CategoryTipo): Promise<Category[]> {
+export async function listCategories(type?: CategoryType): Promise<Category[]> {
   const { data } = await api.get<{ items: Category[] }>('/categories', {
-    params: tipo ? { tipo } : undefined,
+    params: type ? { type } : undefined,
   });
   return data.items;
 }
 
-export async function createCategory(input: { nombre: string; tipo: CategoryTipo }) {
+export async function createCategory(input: { name: string; type: CategoryType }) {
   const { data } = await api.post<{ item: Category }>('/categories', input);
   return data.item;
 }
 
-export async function updateCategory(id: string, input: { nombre: string }) {
+export async function updateCategory(id: string, input: { name: string }) {
   const { data } = await api.patch<{ item: Category }>(`/categories/${id}`, input);
   return data.item;
 }

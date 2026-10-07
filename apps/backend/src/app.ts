@@ -29,9 +29,9 @@ import { liabilityPaymentsRoutes } from './modules/liability-payments/routes.js'
 import { dashboardRoutes } from './modules/dashboard/routes.js';
 import { backupRoutes } from './modules/backup/routes.js';
 
-export async function buildApp() {
+export async function buildApp(options: { logger?: boolean } = {}) {
   const app = fastify({
-    logger: {
+    logger: options.logger ?? {
       level: config.NODE_ENV === 'production' ? 'info' : 'debug',
       transport:
         config.NODE_ENV === 'development'

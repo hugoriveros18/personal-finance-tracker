@@ -1,18 +1,18 @@
-import type { Prisma, PrismaClient, LiabilityPayment } from '@prisma/client';
+import type { PrismaClient, LiabilityPayment } from '@prisma/client';
 import { applyDeltaToAccount, type BalanceDelta } from '../transactions/service.js';
 import { lockAccountsForUpdate } from '../../shared/locking.js';
 import { NotFound } from '../../shared/errors.js';
 
-export const deltaForLP = (valor: bigint): BalanceDelta => ({
-  disponible: -valor,
-  ahorro: 0n,
-  pasivos: -valor,
+export const deltaForLP = (amount: bigint): BalanceDelta => ({
+  availableBalance: -amount,
+  savingsBalance: 0n,
+  liabilitiesBalance: -amount,
 });
 
 const negate = (d: BalanceDelta): BalanceDelta => ({
-  disponible: -d.disponible,
-  ahorro: -d.ahorro,
-  pasivos: -d.pasivos,
+  availableBalance: -d.availableBalance,
+  savingsBalance: -d.savingsBalance,
+  liabilitiesBalance: -d.liabilitiesBalance,
 });
 
 export class LiabilityPaymentsService {
@@ -20,7 +20,7 @@ export class LiabilityPaymentsService {
 
   async create(
     userId: string,
-    input: { descripcion: string; fecha: Date; valor: number; accountId: string },
+    input: { description: string; date: Date; amount: number; accountId: string },
   ): Promise<LiabilityPayment> {
     return this.prisma.$transaction(
       async (tx) => {
@@ -29,15 +29,15 @@ export class LiabilityPaymentsService {
           where: { id: input.accountId, userId },
         });
         if (!account) throw NotFound('account');
-        const valor = BigInt(input.valor);
-        await applyDeltaToAccount(tx, input.accountId, deltaForLP(valor));
+        const amount = BigInt(input.amount);
+        await applyDeltaToAccount(tx, input.accountId, deltaForLP(amount));
         return tx.liabilityPayment.create({
           data: {
             userId,
             accountId: input.accountId,
-            descripcion: input.descripcion,
-            fecha: input.fecha,
-            valor,
+            description: input.description,
+            date: input.date,
+            amount,
           },
         });
       },
@@ -48,16 +48,16 @@ export class LiabilityPaymentsService {
   async update(
     userId: string,
     id: string,
-    patch: Partial<{ descripcion: string; fecha: Date; valor: number; accountId: string }>,
+    patch: Partial<{ description: string; date: Date; amount: number; accountId: string }>,
   ): Promise<LiabilityPayment> {
     return this.prisma.$transaction(
       async (tx) => {
         const existing = await tx.liabilityPayment.findFirst({ where: { id, userId } });
         if (!existing) throw NotFound('liability_payment');
         const newAccountId = patch.accountId ?? existing.accountId;
-        const newValor = patch.valor !== undefined ? BigInt(patch.valor) : existing.valor;
-        const newFecha = patch.fecha ?? existing.fecha;
-        const newDescripcion = patch.descripcion ?? existing.descripcion;
+        const newAmount = patch.amount !== undefined ? BigInt(patch.amount) : existing.amount;
+        const newDate = patch.date ?? existing.date;
+        const newDescription = patch.description ?? existing.description;
 
         await lockAccountsForUpdate(tx, userId, [existing.accountId, newAccountId]);
         if (patch.accountId) {
@@ -65,16 +65,16 @@ export class LiabilityPaymentsService {
           if (!acc) throw NotFound('account');
         }
 
-        await applyDeltaToAccount(tx, existing.accountId, negate(deltaForLP(existing.valor)));
-        await applyDeltaToAccount(tx, newAccountId, deltaForLP(newValor));
+        await applyDeltaToAccount(tx, existing.accountId, negate(deltaForLP(existing.amount)));
+        await applyDeltaToAccount(tx, newAccountId, deltaForLP(newAmount));
 
         return tx.liabilityPayment.update({
           where: { id },
           data: {
             accountId: newAccountId,
-            descripcion: newDescripcion,
-            fecha: newFecha,
-            valor: newValor,
+            description: newDescription,
+            date: newDate,
+            amount: newAmount,
           },
         });
       },
@@ -88,7 +88,7 @@ export class LiabilityPaymentsService {
         const existing = await tx.liabilityPayment.findFirst({ where: { id, userId } });
         if (!existing) throw NotFound('liability_payment');
         await lockAccountsForUpdate(tx, userId, [existing.accountId]);
-        await applyDeltaToAccount(tx, existing.accountId, negate(deltaForLP(existing.valor)));
+        await applyDeltaToAccount(tx, existing.accountId, negate(deltaForLP(existing.amount)));
         await tx.liabilityPayment.delete({ where: { id } });
       },
       { isolationLevel: 'Serializable' },

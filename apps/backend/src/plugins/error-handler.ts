@@ -44,6 +44,13 @@ export const errorHandlerPlugin = fp(async (app) => {
     // Prisma errors
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
       switch (err.code) {
+        case 'P2034': // serializable transaction conflict
+          return reply.code(409).send({
+            error: {
+              code: 'CONCURRENT_MODIFICATION',
+              message: 'Concurrent balance update; retry the operation',
+            },
+          });
         case 'P2002': // unique constraint
           return reply.code(409).send({
             error: { code: 'CONFLICT', message: 'Resource already exists', details: err.meta },
@@ -66,9 +73,20 @@ export const errorHandlerPlugin = fp(async (app) => {
     // Postgres CHECK / raised exception bubbling through Prisma
     const pgErr = err as { code?: string; meta?: { code?: string; message?: string } };
     const pgCode = pgErr?.meta?.code ?? pgErr?.code;
+    if (pgCode === '40001' || pgCode === '40P01') {
+      return reply.code(409).send({
+        error: {
+          code: 'CONCURRENT_MODIFICATION',
+          message: 'Concurrent balance update; retry the operation',
+        },
+      });
+    }
     if (pgCode === '23514') {
       return reply.code(422).send({
-        error: { code: 'WOULD_VIOLATE_INVARIANT', message: 'Operation violates a balance invariant' },
+        error: {
+          code: 'WOULD_VIOLATE_INVARIANT',
+          message: 'Operation violates a balance invariant',
+        },
       });
     }
     if (pgCode === 'P0001' || pgErr?.meta?.message) {

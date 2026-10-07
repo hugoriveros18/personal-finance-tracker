@@ -1,4 +1,14 @@
-import { Button, Card, Group, SimpleGrid, Stack, Text, Title, Menu, ActionIcon } from '@mantine/core';
+import {
+  Button,
+  Card,
+  Group,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+  Menu,
+  ActionIcon,
+} from '@mantine/core';
 import {
   IconDots,
   IconEdit,
@@ -39,21 +49,24 @@ export default function AccountsPage() {
 
   const totals = accounts.reduce(
     (acc, a) => {
-      acc.disponible += a.disponible;
-      acc.ahorro += a.ahorro;
-      acc.pasivos += a.pasivos;
+      acc.availableBalance += a.availableBalance;
+      acc.savingsBalance += a.savingsBalance;
+      acc.liabilitiesBalance += a.liabilitiesBalance;
       return acc;
     },
-    { disponible: 0, ahorro: 0, pasivos: 0 },
+    { availableBalance: 0, savingsBalance: 0, liabilitiesBalance: 0 },
   );
-  const patrimonio = totals.disponible + totals.ahorro - totals.pasivos;
+  const netWorth = totals.availableBalance + totals.savingsBalance - totals.liabilitiesBalance;
 
   return (
     <Page
       title={t('accounts.title')}
       description={t('accounts.subtitle')}
       actions={
-        <Button leftSection={<IconPlus size={16} />} onClick={() => openAccountFormModal(undefined, t)}>
+        <Button
+          leftSection={<IconPlus size={16} />}
+          onClick={() => openAccountFormModal(undefined, t)}
+        >
           {t('accounts.newAccount')}
         </Button>
       }
@@ -62,27 +75,27 @@ export default function AccountsPage() {
         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
           <Stack gap={2}>
             <Text size="xs" c="dimmed" tt="uppercase">
-              {t('accounts.totalsBar.disponible')}
+              {t('accounts.totalsBar.availableBalance')}
             </Text>
-            <MoneyDisplay value={totals.disponible} fw={700} fz="xl" />
+            <MoneyDisplay value={totals.availableBalance} fw={700} fz="xl" />
           </Stack>
           <Stack gap={2}>
             <Text size="xs" c="dimmed" tt="uppercase">
-              {t('accounts.totalsBar.ahorro')}
+              {t('accounts.totalsBar.savingsBalance')}
             </Text>
-            <MoneyDisplay value={totals.ahorro} fw={700} fz="xl" />
+            <MoneyDisplay value={totals.savingsBalance} fw={700} fz="xl" />
           </Stack>
           <Stack gap={2}>
             <Text size="xs" c="dimmed" tt="uppercase">
-              {t('accounts.totalsBar.pasivos')}
+              {t('accounts.totalsBar.liabilitiesBalance')}
             </Text>
-            <MoneyDisplay value={totals.pasivos} fw={700} fz="xl" c="red.7" />
+            <MoneyDisplay value={totals.liabilitiesBalance} fw={700} fz="xl" c="red.7" />
           </Stack>
           <Stack gap={2}>
             <Text size="xs" c="dimmed" tt="uppercase">
-              {t('accounts.totalsBar.patrimonio')}
+              {t('accounts.totalsBar.netWorth')}
             </Text>
-            <MoneyDisplay value={patrimonio} fw={700} fz="xl" c="teal.7" />
+            <MoneyDisplay value={netWorth} fw={700} fz="xl" c="teal.7" />
           </Stack>
         </SimpleGrid>
       </Card>
@@ -91,7 +104,10 @@ export default function AccountsPage() {
         <EmptyState
           title={t('common.noData')}
           action={
-            <Button leftSection={<IconPlus size={16} />} onClick={() => openAccountFormModal(undefined, t)}>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => openAccountFormModal(undefined, t)}
+            >
               {t('accounts.newAccount')}
             </Button>
           }
@@ -103,7 +119,7 @@ export default function AccountsPage() {
               <Stack>
                 <Group justify="space-between" align="flex-start">
                   <Stack gap={2}>
-                    <Title order={4}>{a.nombre}</Title>
+                    <Title order={4}>{a.name}</Title>
                     <Text size="xs" c="dimmed">
                       {t('common.amount')}
                     </Text>
@@ -121,7 +137,7 @@ export default function AccountsPage() {
                       >
                         {t('common.edit')}
                       </Menu.Item>
-                      {a.pasivos > 0 && (
+                      {a.liabilitiesBalance > 0 && (
                         <Menu.Item
                           leftSection={<IconCreditCardPay size={14} />}
                           onClick={() => openLiabilityPaymentModal(a, t)}
@@ -151,21 +167,25 @@ export default function AccountsPage() {
                 <SimpleGrid cols={2} spacing={4}>
                   <Stack gap={0}>
                     <Text size="xs" c="dimmed">
-                      {t('dashboard.disponible')}
+                      {t('dashboard.availableBalance')}
                     </Text>
-                    <MoneyDisplay value={a.disponible} fw={600} />
+                    <MoneyDisplay value={a.availableBalance} fw={600} />
                   </Stack>
                   <Stack gap={0}>
                     <Text size="xs" c="dimmed">
-                      {t('dashboard.ahorro')}
+                      {t('dashboard.savingsBalance')}
                     </Text>
-                    <MoneyDisplay value={a.ahorro} fw={600} />
+                    <MoneyDisplay value={a.savingsBalance} fw={600} />
                   </Stack>
                   <Stack gap={0}>
                     <Text size="xs" c="dimmed">
-                      {t('dashboard.pasivos')}
+                      {t('dashboard.liabilitiesBalance')}
                     </Text>
-                    <MoneyDisplay value={a.pasivos} fw={600} c={a.pasivos ? 'red.7' : undefined} />
+                    <MoneyDisplay
+                      value={a.liabilitiesBalance}
+                      fw={600}
+                      c={a.liabilitiesBalance ? 'red.7' : undefined}
+                    />
                   </Stack>
                   <Stack gap={0}>
                     <Text size="xs" c="dimmed">
@@ -175,7 +195,7 @@ export default function AccountsPage() {
                   </Stack>
                 </SimpleGrid>
                 <Group justify="space-between">
-                  {a.pasivos > 0 && (
+                  {a.liabilitiesBalance > 0 && (
                     <Button
                       variant="light"
                       color="orange"

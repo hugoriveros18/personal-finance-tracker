@@ -17,16 +17,16 @@ export async function getAccount(id: string): Promise<Account> {
 }
 
 export async function createAccount(input: {
-  nombre: string;
-  disponible: number;
-  ahorro: number;
-  pasivos: number;
+  name: string;
+  availableBalance: number;
+  savingsBalance: number;
+  liabilitiesBalance: number;
 }): Promise<Account> {
   const { data } = await api.post<{ item: Account }>('/accounts', input);
   return data.item;
 }
 
-export async function updateAccount(id: string, input: { nombre: string }): Promise<Account> {
+export async function updateAccount(id: string, input: { name: string }): Promise<Account> {
   const { data } = await api.patch<{ item: Account }>(`/accounts/${id}`, input);
   return data.item;
 }

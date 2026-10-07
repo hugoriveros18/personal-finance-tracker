@@ -41,13 +41,13 @@ describe('bigintToNumber', () => {
   it('walks plain objects and converts bigint inside while preserving Date', () => {
     const tx = {
       id: 'abc',
-      valor: 50_000n,
-      fecha: new Date('2026-04-27T00:00:00Z'),
+      amount: 50_000n,
+      date: new Date('2026-04-27T00:00:00Z'),
       meta: { extra: 1n },
     };
     const out = bigintToNumber(tx) as typeof tx;
-    expect(out.valor).toBe(50_000);
-    expect(out.fecha).toBeInstanceOf(Date);
+    expect(out.amount).toBe(50_000);
+    expect(out.date).toBeInstanceOf(Date);
     expect(out.meta.extra).toBe(1);
   });
 

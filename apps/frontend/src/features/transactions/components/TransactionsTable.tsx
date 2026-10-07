@@ -1,3 +1,4 @@
+import { getTableLabels } from '@/shared/lib/tableLabels';
 import { useMemo, useState } from 'react';
 import { ActionIcon, Badge, Group, Menu, Text } from '@mantine/core';
 import { DataTable } from 'mantine-datatable';
@@ -6,13 +7,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
-import {
-  deleteTransaction,
-  listTransactions,
-  transactionKeys,
-} from '../api/transactions';
+import { deleteTransaction, listTransactions, transactionKeys } from '../api/transactions';
 import { useFormatters } from '@/shared/hooks/useFormatters';
-import type { Transaction, TransactionTipo } from '@/shared/types/domain';
+import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { openTransactionFormModal } from './TransactionFormModal';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { categoryKeys, listCategories } from '@/features/categories/api/categories';
@@ -22,9 +19,9 @@ interface Props {
   filterAccountIds?: string[];
   filterMonth?: string;
   filterCategoryIds?: string[];
-  filterTipos?: TransactionTipo[];
-  filterValorMin?: number;
-  filterValorMax?: number;
+  filterTypes?: TransactionType[];
+  filterAmountMin?: number;
+  filterAmountMax?: number;
   search?: string;
 }
 
@@ -40,9 +37,9 @@ export function TransactionsTable(props: Props) {
     if (props.filterMonth) p.month = props.filterMonth;
     if (props.filterAccountIds?.length) p.accountIds = props.filterAccountIds.join(',');
     if (props.filterCategoryIds?.length) p.categoryIds = props.filterCategoryIds.join(',');
-    if (props.filterTipos?.length) p.tipos = props.filterTipos.join(',');
-    if (props.filterValorMin !== undefined) p.valorMin = props.filterValorMin;
-    if (props.filterValorMax !== undefined) p.valorMax = props.filterValorMax;
+    if (props.filterTypes?.length) p.types = props.filterTypes.join(',');
+    if (props.filterAmountMin !== undefined) p.amountMin = props.filterAmountMin;
+    if (props.filterAmountMax !== undefined) p.amountMax = props.filterAmountMax;
     if (props.search) p.q = props.search;
     return p;
   }, [page, pageSize, props]);
@@ -55,8 +52,8 @@ export function TransactionsTable(props: Props) {
   const accountsQ = useQuery({ queryKey: accountKeys.all, queryFn: listAccounts });
   const categoriesQ = useQuery({ queryKey: categoryKeys.all, queryFn: () => listCategories() });
 
-  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.nombre ?? '—';
-  const categoryName = (id: string) => categoriesQ.data?.find((c) => c.id === id)?.nombre ?? '—';
+  const accountName = (id: string) => accountsQ.data?.find((a) => a.id === id)?.name ?? '—';
+  const categoryName = (id: string) => categoriesQ.data?.find((c) => c.id === id)?.name ?? '—';
 
   const removeMut = useMutation({
     mutationFn: deleteTransaction,
@@ -73,6 +70,7 @@ export function TransactionsTable(props: Props) {
 
   return (
     <DataTable<Transaction>
+      {...getTableLabels(t)}
       withTableBorder
       borderRadius="md"
       striped
@@ -89,28 +87,28 @@ export function TransactionsTable(props: Props) {
       onRecordsPerPageChange={setPageSize}
       columns={[
         {
-          accessor: 'fecha',
+          accessor: 'date',
           title: t('common.date'),
-          render: (r) => f.date(r.fecha),
+          render: (r) => f.date(r.date),
           width: 110,
         },
         {
-          accessor: 'tipo',
+          accessor: 'type',
           title: t('common.type'),
           render: (r) => (
             <Badge
-              color={r.tipo === 'ingreso' ? 'teal' : r.tipo === 'egreso' ? 'orange' : 'red'}
+              color={r.type === 'income' ? 'teal' : r.type === 'expense' ? 'orange' : 'red'}
               variant="light"
             >
-              {t(`transactions.tipo${r.tipo.charAt(0).toUpperCase()}${r.tipo.slice(1)}`)}
+              {t(`transactions.${r.type}`)}
             </Badge>
           ),
           width: 100,
         },
         {
-          accessor: 'descripcion',
+          accessor: 'description',
           title: t('common.description'),
-          render: (r) => <Text lineClamp={1}>{r.descripcion}</Text>,
+          render: (r) => <Text lineClamp={1}>{r.description}</Text>,
         },
         {
           accessor: 'categoryId',
@@ -123,14 +121,14 @@ export function TransactionsTable(props: Props) {
           render: (r) => accountName(r.accountId),
         },
         {
-          accessor: 'valor',
+          accessor: 'amount',
           title: t('common.amount'),
           textAlign: 'right',
           width: 140,
           render: (r) => (
-            <Text fw={600} c={r.tipo === 'ingreso' ? 'teal.7' : 'red.7'}>
-              {r.tipo === 'ingreso' ? '+' : '-'}
-              {f.money(r.valor)}
+            <Text fw={600} c={r.type === 'income' ? 'teal.7' : 'red.7'}>
+              {r.type === 'income' ? '+' : '-'}
+              {f.money(r.amount)}
             </Text>
           ),
         },

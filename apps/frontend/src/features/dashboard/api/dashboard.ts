@@ -6,41 +6,41 @@ export interface DashboardResponse {
   year: number;
   accounts: Account[];
   totals: {
-    disponibleTotal: number;
-    ahorroTotal: number;
-    pasivosTotal: number;
+    availableBalanceTotal: number;
+    savingsBalanceTotal: number;
+    liabilitiesBalanceTotal: number;
     netWorth: number;
   };
   monthSummary: {
-    ingresos: number;
-    egresos: number;
-    pasivosNuevos: number;
+    income: number;
+    expenses: number;
+    newLiabilities: number;
     liabilityPayments: number;
     movementsCount: number;
-    ahorroDelta: number;
+    savingsChange: number;
     flow: number;
   };
   byCategoryMonth: {
-    ingreso: { categoryId: string; nombre: string; tipo: string; total: number }[];
-    egreso: { categoryId: string; nombre: string; tipo: string; total: number }[];
+    income: { categoryId: string; name: string; type: string; total: number }[];
+    expense: { categoryId: string; name: string; type: string; total: number }[];
   };
   topCategoriesMonth: DashboardResponse['byCategoryMonth'];
   topCategoriesYear: DashboardResponse['byCategoryMonth'];
   byAccount: {
     accountId: string;
-    nombre: string;
-    ingresos: number;
-    egresos: number;
-    pasivosNuevos: number;
+    name: string;
+    income: number;
+    expenses: number;
+    newLiabilities: number;
     liabilityPayments: number;
   }[];
   trendYear: {
     months: string[];
-    ingresos: number[];
-    egresos: number[];
-    pasivosNuevos: number[];
+    income: number[];
+    expenses: number[];
+    newLiabilities: number[];
     liabilityPayments: number[];
-    ahorroDelta: number[];
+    savingsChange: number[];
   };
   recent: {
     transactions: Transaction[];
@@ -53,7 +53,10 @@ export const dashboardKeys = {
   byMonth: (month: string) => ['dashboard', month] as const,
 };
 
-export async function fetchDashboard(params: { month: string; year: number }): Promise<DashboardResponse> {
+export async function fetchDashboard(params: {
+  month: string;
+  year: number;
+}): Promise<DashboardResponse> {
   const { data } = await api.get<DashboardResponse>('/dashboard', { params });
   return data;
 }

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button, Group, SegmentedControl, Select, Stack, Textarea } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { modals } from '@mantine/modals';
@@ -11,22 +12,22 @@ import { MoneyInput } from '@/shared/components/MoneyInput';
 import { createMovement, movementKeys, updateMovement } from '../api/movements';
 import { accountKeys, listAccounts } from '@/features/accounts/api/accounts';
 import { getApiErrorMessage } from '@/shared/api/client';
-import type { Movement, MovementFlujo } from '@/shared/types/domain';
+import type { Movement, MovementFlow } from '@/shared/types/domain';
 import { parseApiDate, toISODate } from '@/shared/lib/dates';
 
 const schema = z.object({
-  descripcion: z.string().min(1).max(200),
-  fecha: z.date(),
-  flujo: z.enum(['INTER_DISPONIBLE', 'INTRA_DISPONIBLE_TO_AHORRO', 'INTRA_AHORRO_TO_DISPONIBLE']),
-  valor: z.coerce.number().int().positive(),
-  cuentaEmisoraId: z.string().uuid(),
-  cuentaReceptoraId: z.string().uuid(),
+  description: z.string().min(1).max(200),
+  date: z.date(),
+  flow: z.enum(['INTER_AVAILABLE', 'INTRA_AVAILABLE_TO_SAVINGS', 'INTRA_SAVINGS_TO_AVAILABLE']),
+  amount: z.coerce.number().int().positive(),
+  sourceAccountId: z.string().uuid(),
+  destinationAccountId: z.string().uuid(),
 });
 type FormValues = z.infer<typeof schema>;
 
 type FormMode = 'view' | 'edit' | 'create';
 
-function FormBody({
+export function MovementForm({
   initial,
   onClose,
   mode,
@@ -52,41 +53,49 @@ function FormBody({
     resolver: zodResolver(schema),
     defaultValues: initial
       ? {
-          descripcion: initial.descripcion,
-          fecha: parseApiDate(initial.fecha),
-          flujo: initial.flujo,
-          valor: initial.valor,
-          cuentaEmisoraId: initial.cuentaEmisoraId,
-          cuentaReceptoraId: initial.cuentaReceptoraId,
+          description: initial.description,
+          date: parseApiDate(initial.date),
+          flow: initial.flow,
+          amount: initial.amount,
+          sourceAccountId: initial.sourceAccountId,
+          destinationAccountId: initial.destinationAccountId,
         }
       : {
-          descripcion: '',
-          fecha: new Date(),
-          flujo: 'INTER_DISPONIBLE' as MovementFlujo,
-          valor: null as unknown as number,
-          cuentaEmisoraId: '',
-          cuentaReceptoraId: '',
+          description: '',
+          date: new Date(),
+          flow: 'INTER_AVAILABLE' as MovementFlow,
+          amount: null as unknown as number,
+          sourceAccountId: '',
+          destinationAccountId: '',
         },
   });
 
-  const flujo = watch('flujo');
-  const emisoraId = watch('cuentaEmisoraId');
+  const flow = watch('flow');
+  const sourceAccountId = watch('sourceAccountId');
 
   // Force same account on intra
-  if (flujo !== 'INTER_DISPONIBLE' && emisoraId && watch('cuentaReceptoraId') !== emisoraId) {
-    setValue('cuentaReceptoraId', emisoraId);
-  }
+  const destinationAccountId = watch('destinationAccountId');
+  useEffect(() => {
+    if (
+      !readOnly &&
+      flow !== 'INTER_AVAILABLE' &&
+      sourceAccountId &&
+      destinationAccountId !== sourceAccountId
+    ) {
+      setValue('destinationAccountId', sourceAccountId);
+    }
+  }, [flow, sourceAccountId, destinationAccountId, readOnly, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       const payload = {
-        descripcion: values.descripcion,
-        fecha: toISODate(values.fecha),
-        flujo: values.flujo,
-        valor: values.valor,
-        cuentaEmisoraId: values.cuentaEmisoraId,
-        cuentaReceptoraId:
-          values.flujo === 'INTER_DISPONIBLE' ? values.cuentaReceptoraId : values.cuentaEmisoraId,
+        description: values.description,
+        date: toISODate(values.date),
+        flow: values.flow,
+        amount: values.amount,
+        sourceAccountId: values.sourceAccountId,
+        destinationAccountId:
+          values.flow === 'INTER_AVAILABLE' ? values.destinationAccountId : values.sourceAccountId,
       };
       if (isEdit) {
         await updateMovement(initial!.id, payload);
@@ -106,14 +115,14 @@ function FormBody({
     }
   });
 
-  const accountOptions = (accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.nombre }));
+  const accountOptions = (accountsQ.data ?? []).map((a) => ({ value: a.id, label: a.name }));
 
   return (
     <form onSubmit={onSubmit}>
       <Stack>
         <Controller
           control={control}
-          name="flujo"
+          name="flow"
           render={({ field }) => (
             <SegmentedControl
               fullWidth
@@ -121,14 +130,14 @@ function FormBody({
               onChange={(v) => field.onChange(v)}
               disabled={readOnly}
               data={[
-                { value: 'INTER_DISPONIBLE', label: t('movements.flujo.INTER_DISPONIBLE') },
+                { value: 'INTER_AVAILABLE', label: t('movements.flow.INTER_AVAILABLE') },
                 {
-                  value: 'INTRA_DISPONIBLE_TO_AHORRO',
-                  label: t('movements.flujo.INTRA_DISPONIBLE_TO_AHORRO'),
+                  value: 'INTRA_AVAILABLE_TO_SAVINGS',
+                  label: t('movements.flow.INTRA_AVAILABLE_TO_SAVINGS'),
                 },
                 {
-                  value: 'INTRA_AHORRO_TO_DISPONIBLE',
-                  label: t('movements.flujo.INTRA_AHORRO_TO_DISPONIBLE'),
+                  value: 'INTRA_SAVINGS_TO_AVAILABLE',
+                  label: t('movements.flow.INTRA_SAVINGS_TO_AVAILABLE'),
                 },
               ]}
             />
@@ -136,7 +145,7 @@ function FormBody({
         />
         <Controller
           control={control}
-          name="fecha"
+          name="date"
           render={({ field }) => (
             <DatePickerInput
               label={t('common.date')}
@@ -148,45 +157,45 @@ function FormBody({
         />
         <Controller
           control={control}
-          name="valor"
+          name="amount"
           render={({ field }) => (
             <MoneyInput
               label={t('common.amount')}
               placeholder="$0"
               value={(field.value as number | null) ?? null}
               onChange={(v) => field.onChange(v)}
-              error={errors.valor?.message}
+              error={errors.amount?.message}
               disabled={readOnly}
             />
           )}
         />
         <Controller
           control={control}
-          name="cuentaEmisoraId"
+          name="sourceAccountId"
           render={({ field }) => (
             <Select
-              label={flujo === 'INTER_DISPONIBLE' ? t('movements.from') : t('common.account')}
+              label={flow === 'INTER_AVAILABLE' ? t('movements.from') : t('common.account')}
               value={field.value || null}
               onChange={(v) => field.onChange(v ?? '')}
               data={accountOptions}
               searchable
-              error={errors.cuentaEmisoraId?.message}
+              error={errors.sourceAccountId?.message}
               disabled={readOnly}
             />
           )}
         />
-        {flujo === 'INTER_DISPONIBLE' && (
+        {flow === 'INTER_AVAILABLE' && (
           <Controller
             control={control}
-            name="cuentaReceptoraId"
+            name="destinationAccountId"
             render={({ field }) => (
               <Select
                 label={t('movements.to')}
                 value={field.value || null}
                 onChange={(v) => field.onChange(v ?? '')}
-                data={accountOptions.filter((o) => o.value !== emisoraId)}
+                data={accountOptions.filter((o) => o.value !== sourceAccountId)}
                 searchable
-                error={errors.cuentaReceptoraId?.message}
+                error={errors.destinationAccountId?.message}
                 disabled={readOnly}
               />
             )}
@@ -195,8 +204,8 @@ function FormBody({
         <Textarea
           label={t('common.description')}
           rows={2}
-          {...register('descripcion')}
-          error={errors.descripcion?.message}
+          {...register('description')}
+          error={errors.description?.message}
           disabled={readOnly}
         />
         <Group justify="flex-end" mt="sm">
@@ -226,6 +235,6 @@ export function openMovementFormModal(
     modalId: id,
     title,
     size: 'lg',
-    children: <FormBody initial={initial} mode={mode} onClose={() => modals.close(id)} />,
+    children: <MovementForm initial={initial} mode={mode} onClose={() => modals.close(id)} />,
   });
 }

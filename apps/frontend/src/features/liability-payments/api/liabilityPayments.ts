@@ -14,9 +14,9 @@ export async function listLiabilityPayments(
 }
 
 export async function createLiabilityPayment(input: {
-  descripcion: string;
-  fecha: string;
-  valor: number;
+  description: string;
+  date: string;
+  amount: number;
   accountId: string;
 }): Promise<LiabilityPayment> {
   const { data } = await api.post<{ item: LiabilityPayment }>('/liability-payments', input);
@@ -25,7 +25,7 @@ export async function createLiabilityPayment(input: {
 
 export async function updateLiabilityPayment(
   id: string,
-  input: Partial<{ descripcion: string; fecha: string; valor: number; accountId: string }>,
+  input: Partial<{ description: string; date: string; amount: number; accountId: string }>,
 ): Promise<LiabilityPayment> {
   const { data } = await api.patch<{ item: LiabilityPayment }>(`/liability-payments/${id}`, input);
   return data.item;

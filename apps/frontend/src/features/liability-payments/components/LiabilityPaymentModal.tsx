@@ -15,16 +15,20 @@ import { getApiErrorMessage } from '@/shared/api/client';
 import { toISODate } from '@/shared/lib/dates';
 import type { Account } from '@/shared/types/domain';
 
-const buildSchema = (maxDisponible: number, maxPasivos: number) =>
+const buildSchema = (
+  maxAvailableBalance: number,
+  maxLiabilitiesBalance: number,
+  t: (key: string) => string,
+) =>
   z.object({
-    descripcion: z.string().min(1).max(200),
-    fecha: z.date(),
-    valor: z.coerce
+    description: z.string().min(1).max(200),
+    date: z.date(),
+    amount: z.coerce
       .number()
       .int()
       .positive()
-      .max(maxDisponible, 'Excede el disponible')
-      .max(maxPasivos, 'Excede los pasivos'),
+      .max(maxAvailableBalance, t('validation.exceedsAvailableBalance'))
+      .max(maxLiabilitiesBalance, t('validation.exceedsLiabilitiesBalance')),
   });
 
 interface Props {
@@ -32,11 +36,11 @@ interface Props {
   onClose: () => void;
 }
 
-function FormBody({ account, onClose }: Props) {
+export function LiabilityPaymentForm({ account, onClose }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const max = Math.min(account.disponible, account.pasivos);
-  const schema = buildSchema(account.disponible, account.pasivos);
+  const max = Math.min(account.availableBalance, account.liabilitiesBalance);
+  const schema = buildSchema(account.availableBalance, account.liabilitiesBalance, t);
   type V = z.infer<typeof schema>;
 
   const {
@@ -47,16 +51,16 @@ function FormBody({ account, onClose }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<V>({
     resolver: zodResolver(schema),
-    defaultValues: { descripcion: '', fecha: new Date(), valor: null as unknown as number },
+    defaultValues: { description: '', date: new Date(), amount: null as unknown as number },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       await createLiabilityPayment({
         accountId: account.id,
-        descripcion: values.descripcion,
-        fecha: toISODate(values.fecha),
-        valor: values.valor,
+        description: values.description,
+        date: toISODate(values.date),
+        amount: values.amount,
       });
       notifications.show({ color: 'teal', message: t('common.created') });
       await Promise.all([
@@ -75,15 +79,15 @@ function FormBody({ account, onClose }: Props) {
       <Stack>
         <Group justify="space-between">
           <Text size="sm" c="dimmed">
-            {t('dashboard.disponible')}
+            {t('dashboard.availableBalance')}
           </Text>
-          <MoneyDisplay value={account.disponible} fw={600} />
+          <MoneyDisplay value={account.availableBalance} fw={600} />
         </Group>
         <Group justify="space-between">
           <Text size="sm" c="dimmed">
-            {t('dashboard.pasivos')}
+            {t('dashboard.liabilitiesBalance')}
           </Text>
-          <MoneyDisplay value={account.pasivos} fw={600} />
+          <MoneyDisplay value={account.liabilitiesBalance} fw={600} />
         </Group>
         <Group justify="space-between">
           <Text size="sm" c="dimmed">
@@ -96,7 +100,7 @@ function FormBody({ account, onClose }: Props) {
               variant="light"
               color="teal"
               disabled={max <= 0}
-              onClick={() => setValue('valor', max, { shouldValidate: true, shouldDirty: true })}
+              onClick={() => setValue('amount', max, { shouldValidate: true, shouldDirty: true })}
             >
               {t('liabilityPayments.payAll')}
             </Button>
@@ -104,21 +108,25 @@ function FormBody({ account, onClose }: Props) {
         </Group>
         <Controller
           control={control}
-          name="fecha"
+          name="date"
           render={({ field }) => (
-            <DatePickerInput label={t('common.date')} value={field.value} onChange={field.onChange} />
+            <DatePickerInput
+              label={t('common.date')}
+              value={field.value}
+              onChange={field.onChange}
+            />
           )}
         />
         <Controller
           control={control}
-          name="valor"
+          name="amount"
           render={({ field }) => (
             <MoneyInput
               label={t('common.amount')}
               placeholder="$0"
               value={(field.value as number | null) ?? null}
               onChange={(v) => field.onChange(v)}
-              error={errors.valor?.message}
+              error={errors.amount?.message}
               max={max}
             />
           )}
@@ -126,8 +134,8 @@ function FormBody({ account, onClose }: Props) {
         <Textarea
           label={t('common.description')}
           rows={2}
-          {...register('descripcion')}
-          error={errors.descripcion?.message}
+          {...register('description')}
+          error={errors.description?.message}
         />
         <Group justify="flex-end" mt="sm">
           <Button variant="default" onClick={onClose}>
@@ -146,8 +154,8 @@ export function openLiabilityPaymentModal(account: Account, t: (k: string) => st
   const id = `lp-${account.id}-${Math.random()}`;
   modals.open({
     modalId: id,
-    title: `${t('accounts.payLiability')} — ${account.nombre}`,
+    title: `${t('accounts.payLiability')} — ${account.name}`,
     size: 'sm',
-    children: <FormBody account={account} onClose={() => modals.close(id)} />,
+    children: <LiabilityPaymentForm account={account} onClose={() => modals.close(id)} />,
   });
 }

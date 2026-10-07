@@ -5,7 +5,7 @@ import type { i18n } from 'i18next';
 /**
  * Translates Zod default issue messages through i18next so validation errors
  * shown to the user respect the active locale. Custom messages on individual
- * schemas (e.g. `.refine(..., 'Excede el disponible')`) still win — we only
+ * schemas (e.g. `.refine(..., t('validation.exceedsAvailableBalance'))`) still win — we only
  * fill in `ctx.defaultError` when Zod hasn't been given a custom one.
  */
 export function buildZodErrorMap(i18nInstance: i18n): ZodErrorMap {

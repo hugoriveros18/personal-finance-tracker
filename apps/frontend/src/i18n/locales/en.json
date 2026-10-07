@@ -11,7 +11,9 @@
     "arrayMin": "Select at least {{min}}",
     "arrayMax": "Select at most {{max}}",
     "email": "Invalid email",
-    "invalid": "Invalid value"
+    "invalid": "Invalid value",
+    "exceedsAvailableBalance": "Exceeds available balance",
+    "exceedsLiabilitiesBalance": "Exceeds liabilities balance"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -32,8 +34,7 @@
     "newPassword": "New password",
     "currentPassword": "Current password",
     "confirmPassword": "Confirm password",
-    "nombre": "First name",
-    "apellidos": "Last name",
+    "lastName": "Last name",
     "haveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "signInTitle": "Welcome back",
@@ -41,7 +42,8 @@
     "submit": "Continue",
     "passwordsDontMatch": "Passwords do not match",
     "registrationDisabled": "Registration is disabled on this server",
-    "invalidCredentials": "Wrong email or password"
+    "invalidCredentials": "Wrong email or password",
+    "firstName": "First name"
   },
   "common": {
     "save": "Save",
@@ -76,7 +78,14 @@
     "account": "Account",
     "name": "Name",
     "min": "Min.",
-    "max": "Max."
+    "max": "Max.",
+    "recordsPerPage": "Records per page",
+    "pagination": {
+      "first": "First page",
+      "last": "Last page",
+      "previous": "Previous page",
+      "next": "Next page"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -85,17 +94,17 @@
     "globalSnapshot": "Global snapshot (today)",
     "income": "Income",
     "expenses": "Expenses",
-    "newPasivos": "New liabilities",
+    "newLiabilities": "New liabilities",
     "balance": "Balance",
-    "ahorroVariacion": "Savings change",
-    "ahorroVariacionHint": "Net effect of transfers between available and savings this month",
-    "disponible": "Available",
-    "ahorro": "Savings",
-    "pasivos": "Liabilities",
+    "savingsChange": "Savings change",
+    "savingsChangeHint": "Net effect of transfers between available and savings this month",
+    "availableBalance": "Available",
+    "savingsBalance": "Savings",
+    "liabilitiesBalance": "Liabilities",
     "netWorth": "Net worth",
     "incomeMonths": "Income by month",
-    "expensesMonths": "Expenses by month (egreso + new liabilities)",
-    "ahorroVariacionMonths": "Savings change by month",
+    "expensesMonths": "Expenses by month (expenses + new liabilities)",
+    "savingsChangeMonths": "Savings change by month",
     "topCategoriesMonth": "Top categories this month",
     "topCategoriesYear": "Top categories this year",
     "noCategoryData": "No data for this period"
@@ -108,10 +117,10 @@
     "initialBalancesHint": "These values cannot be edited later.",
     "payLiability": "Pay liability",
     "totalsBar": {
-      "disponible": "Total available",
-      "ahorro": "Total savings",
-      "pasivos": "Total liabilities",
-      "patrimonio": "Net worth"
+      "availableBalance": "Total available",
+      "savingsBalance": "Total savings",
+      "liabilitiesBalance": "Total liabilities",
+      "netWorth": "Net worth"
     },
     "delete": "Delete account",
     "deleteHint": "Only accounts without transactions, movements or payments can be deleted.",
@@ -125,17 +134,17 @@
     "title": "Categories",
     "subtitle": "Income and expense categories",
     "newCategory": "New category",
-    "tipoIngreso": "Income",
-    "tipoEgreso": "Expense",
+    "income": "Income",
+    "expense": "Expense",
     "categoryTrend": "Monthly category trend"
   },
   "transactions": {
     "title": "Transactions",
     "subtitle": "Income, expenses and new liabilities",
     "newTransaction": "New transaction",
-    "tipoIngreso": "Income",
-    "tipoEgreso": "Expense",
-    "tipoPasivo": "Liability",
+    "income": "Income",
+    "expense": "Expense",
+    "liability": "Liability",
     "filters": {
       "byCategory": "Categories",
       "byAccount": "Accounts",
@@ -148,10 +157,10 @@
     "title": "Movements",
     "subtitle": "Transfers between accounts and within available/savings",
     "newMovement": "New movement",
-    "flujo": {
-      "INTER_DISPONIBLE": "Between accounts",
-      "INTRA_DISPONIBLE_TO_AHORRO": "Available → Savings",
-      "INTRA_AHORRO_TO_DISPONIBLE": "Savings → Available"
+    "flow": {
+      "INTER_AVAILABLE": "Between accounts",
+      "INTRA_AVAILABLE_TO_SAVINGS": "Available → Savings",
+      "INTRA_SAVINGS_TO_AVAILABLE": "Savings → Available"
     },
     "from": "From account",
     "to": "To account"
@@ -160,7 +169,7 @@
     "title": "Liability payments",
     "subtitle": "Payments toward your liabilities using available balance",
     "newPayment": "New payment",
-    "noPasivos": "This account has no liabilities to pay.",
+    "noLiabilities": "This account has no liabilities to pay.",
     "payAll": "Pay all"
   },
   "profile": {
@@ -191,15 +200,20 @@
     "importDone": "Import completed"
   },
   "errors": {
-    "INSUFFICIENT_DISPONIBLE": "Insufficient available balance",
+    "INSUFFICIENT_AVAILABLE_BALANCE": "Insufficient available balance",
     "WOULD_VIOLATE_INVARIANT": "This operation would leave an account with a negative balance",
-    "CATEGORY_TIPO_MISMATCH": "The category type does not match the transaction type",
-    "INVALID_FLUJO_SHAPE": "Accounts do not match the movement type",
+    "CATEGORY_TYPE_MISMATCH": "The category type does not match the transaction type",
+    "INVALID_FLOW_SHAPE": "Accounts do not match the movement type",
     "EMAIL_TAKEN": "Email is already registered",
     "CONFLICT": "Resource conflict",
     "IN_USE": "Resource is in use and cannot be deleted",
     "GUARD_REJECTED": "Operation rejected by a database guard",
     "VALIDATION_ERROR": "Invalid data",
-    "FORBIDDEN": "Action not allowed"
+    "FORBIDDEN": "Action not allowed",
+    "CONCURRENT_MODIFICATION": "Another operation changed the balance. Retry this operation."
+  },
+  "languages": {
+    "es": "Español",
+    "en": "English"
   }
 }

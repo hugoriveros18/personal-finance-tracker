@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 const schema = z.object({
   q: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  tipos: z
+  types: z
     .string()
     .optional()
     .transform((s) => (s ? s.split(',').filter(Boolean) : undefined)),
@@ -16,7 +16,12 @@ const schema = z.object({
 
 function wrapper(initialEntries: string[]) {
   return ({ children }: { children: ReactNode }) => (
-    <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+    <MemoryRouter
+      initialEntries={initialEntries}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      {children}
+    </MemoryRouter>
   );
 }
 
@@ -41,10 +46,10 @@ describe('useUrlFilters', () => {
 
   it('parses CSV string into array', () => {
     const { result } = renderHook(() => useUrlFilters(schema), {
-      wrapper: wrapper(['/?tipos=ingreso,egreso']),
+      wrapper: wrapper(['/?types=income,expense']),
     });
     const [filters] = result.current;
-    expect(filters.tipos).toEqual(['ingreso', 'egreso']);
+    expect(filters.types).toEqual(['income', 'expense']);
   });
 
   it('setFilters merges partial updates and skips empty values', () => {

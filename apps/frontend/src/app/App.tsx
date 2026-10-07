@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { MantineProvider } from '@mantine/core';
+import { DatesProvider } from '@mantine/dates';
+import 'dayjs/locale/es';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -40,11 +42,17 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme={colorScheme} forceColorScheme={colorScheme}>
-        <ModalsProvider>
-          <Notifications position="top-right" />
-          <RouterProvider router={router} />
-        </ModalsProvider>
+      <MantineProvider
+        theme={theme}
+        defaultColorScheme={colorScheme}
+        forceColorScheme={colorScheme}
+      >
+        <DatesProvider settings={{ locale: language }}>
+          <ModalsProvider>
+            <Notifications position="top-right" />
+            <RouterProvider router={router} />
+          </ModalsProvider>
+        </DatesProvider>
       </MantineProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

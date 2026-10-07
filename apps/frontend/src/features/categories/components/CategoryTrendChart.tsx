@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Group, NumberInput, Select, Stack } from '@mantine/core';
+import { Group, NumberInput, Select } from '@mantine/core';
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -30,10 +30,8 @@ export function CategoryTrendChart({ categories }: Props) {
     return data.months.map((m, i) => ({ month: m.split('-')[1], total: data.totals[i] }));
   }, [data]);
   const empty = !data || data.totals.every((v) => v === 0);
-  const selectedCategoryName = categories.find((c) => c.id === categoryId)?.nombre;
-  const subtitle = selectedCategoryName
-    ? `${selectedCategoryName} · ${year}`
-    : year.toString();
+  const selectedCategoryName = categories.find((c) => c.id === categoryId)?.name;
+  const subtitle = selectedCategoryName ? `${selectedCategoryName} · ${year}` : year.toString();
 
   return (
     <ChartShell
@@ -48,14 +46,16 @@ export function CategoryTrendChart({ categories }: Props) {
             placeholder={t('common.category')}
             value={categoryId}
             onChange={setCategoryId}
-            data={categories.map((c) => ({ value: c.id, label: c.nombre }))}
+            data={categories.map((c) => ({ value: c.id, label: c.name }))}
             searchable
             clearable
           />
           <NumberInput
             size="xs"
             value={year}
-            onChange={(v) => setYear(typeof v === 'number' ? v : Number(v) || new Date().getFullYear())}
+            onChange={(v) =>
+              setYear(typeof v === 'number' ? v : Number(v) || new Date().getFullYear())
+            }
             min={1900}
             max={3000}
             hideControls
@@ -67,9 +67,20 @@ export function CategoryTrendChart({ categories }: Props) {
       <LineChart data={points} margin={{ top: 12, right: 12, bottom: 4, left: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--mantine-color-default-border)" />
         <XAxis dataKey="month" stroke="currentColor" fontSize={11} />
-        <YAxis stroke="currentColor" fontSize={11} tickFormatter={(v: number) => f.money(v)} width={80} />
+        <YAxis
+          stroke="currentColor"
+          fontSize={11}
+          tickFormatter={(v: number) => f.money(v)}
+          width={80}
+        />
         <Tooltip {...chartTooltipProps} formatter={(v: number) => f.money(v)} />
-        <Line type="monotone" dataKey="total" stroke="var(--mantine-color-teal-6)" strokeWidth={2} dot />
+        <Line
+          type="monotone"
+          dataKey="total"
+          stroke="var(--mantine-color-teal-6)"
+          strokeWidth={2}
+          dot
+        />
       </LineChart>
     </ChartShell>
   );

@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient, MovementFlujo, Movement } from '@prisma/client';
+import type { Prisma, PrismaClient, MovementFlow, Movement } from '@prisma/client';
 import { applyDeltaToAccount, type BalanceDelta } from '../transactions/service.js';
 import { lockAccountsForUpdate } from '../../shared/locking.js';
 import { AppError, NotFound } from '../../shared/errors.js';
@@ -8,48 +8,48 @@ import { AppError, NotFound } from '../../shared/errors.js';
  * For INTRA_*, both sides apply to the same account row.
  */
 export function deltasForMovement(
-  flujo: MovementFlujo,
-  valor: bigint,
-): { emisora: BalanceDelta; receptora: BalanceDelta } {
-  switch (flujo) {
-    case 'INTER_DISPONIBLE':
+  flow: MovementFlow,
+  amount: bigint,
+): { source: BalanceDelta; destination: BalanceDelta } {
+  switch (flow) {
+    case 'INTER_AVAILABLE':
       return {
-        emisora: { disponible: -valor, ahorro: 0n, pasivos: 0n },
-        receptora: { disponible: valor, ahorro: 0n, pasivos: 0n },
+        source: { availableBalance: -amount, savingsBalance: 0n, liabilitiesBalance: 0n },
+        destination: { availableBalance: amount, savingsBalance: 0n, liabilitiesBalance: 0n },
       };
-    case 'INTRA_DISPONIBLE_TO_AHORRO':
+    case 'INTRA_AVAILABLE_TO_SAVINGS':
       // Same account; combine into one delta when applying
       return {
-        emisora: { disponible: -valor, ahorro: valor, pasivos: 0n },
-        receptora: { disponible: 0n, ahorro: 0n, pasivos: 0n },
+        source: { availableBalance: -amount, savingsBalance: amount, liabilitiesBalance: 0n },
+        destination: { availableBalance: 0n, savingsBalance: 0n, liabilitiesBalance: 0n },
       };
-    case 'INTRA_AHORRO_TO_DISPONIBLE':
+    case 'INTRA_SAVINGS_TO_AVAILABLE':
       return {
-        emisora: { disponible: valor, ahorro: -valor, pasivos: 0n },
-        receptora: { disponible: 0n, ahorro: 0n, pasivos: 0n },
+        source: { availableBalance: amount, savingsBalance: -amount, liabilitiesBalance: 0n },
+        destination: { availableBalance: 0n, savingsBalance: 0n, liabilitiesBalance: 0n },
       };
   }
 }
 
 async function applyMovement(
   tx: Prisma.TransactionClient,
-  flujo: MovementFlujo,
-  valor: bigint,
-  cuentaEmisoraId: string,
-  cuentaReceptoraId: string,
+  flow: MovementFlow,
+  amount: bigint,
+  sourceAccountId: string,
+  destinationAccountId: string,
   sign: 1 | -1,
 ) {
-  const { emisora, receptora } = deltasForMovement(flujo, valor);
+  const { source, destination } = deltasForMovement(flow, amount);
   const apply = (d: BalanceDelta) => ({
-    disponible: BigInt(sign) * d.disponible,
-    ahorro: BigInt(sign) * d.ahorro,
-    pasivos: BigInt(sign) * d.pasivos,
+    availableBalance: BigInt(sign) * d.availableBalance,
+    savingsBalance: BigInt(sign) * d.savingsBalance,
+    liabilitiesBalance: BigInt(sign) * d.liabilitiesBalance,
   });
-  if (flujo === 'INTER_DISPONIBLE') {
-    await applyDeltaToAccount(tx, cuentaEmisoraId, apply(emisora));
-    await applyDeltaToAccount(tx, cuentaReceptoraId, apply(receptora));
+  if (flow === 'INTER_AVAILABLE') {
+    await applyDeltaToAccount(tx, sourceAccountId, apply(source));
+    await applyDeltaToAccount(tx, destinationAccountId, apply(destination));
   } else {
-    await applyDeltaToAccount(tx, cuentaEmisoraId, apply(emisora));
+    await applyDeltaToAccount(tx, sourceAccountId, apply(source));
   }
 }
 
@@ -59,36 +59,43 @@ export class MovementsService {
   async create(
     userId: string,
     input: {
-      descripcion: string;
-      fecha: Date;
-      flujo: MovementFlujo;
-      valor: number;
-      cuentaEmisoraId: string;
-      cuentaReceptoraId: string;
+      description: string;
+      date: Date;
+      flow: MovementFlow;
+      amount: number;
+      sourceAccountId: string;
+      destinationAccountId: string;
     },
   ): Promise<Movement> {
     return this.prisma.$transaction(
       async (tx) => {
         await lockAccountsForUpdate(tx, userId, [
-          input.cuentaEmisoraId,
-          input.cuentaReceptoraId,
+          input.sourceAccountId,
+          input.destinationAccountId,
         ]);
-        const ids = Array.from(new Set([input.cuentaEmisoraId, input.cuentaReceptoraId]));
+        const ids = Array.from(new Set([input.sourceAccountId, input.destinationAccountId]));
         const accounts = await tx.account.findMany({ where: { id: { in: ids }, userId } });
         if (accounts.length !== ids.length) throw NotFound('account');
 
-        const valor = BigInt(input.valor);
-        await applyMovement(tx, input.flujo, valor, input.cuentaEmisoraId, input.cuentaReceptoraId, 1);
+        const amount = BigInt(input.amount);
+        await applyMovement(
+          tx,
+          input.flow,
+          amount,
+          input.sourceAccountId,
+          input.destinationAccountId,
+          1,
+        );
 
         return tx.movement.create({
           data: {
             userId,
-            descripcion: input.descripcion,
-            fecha: input.fecha,
-            flujo: input.flujo,
-            valor,
-            cuentaEmisoraId: input.cuentaEmisoraId,
-            cuentaReceptoraId: input.cuentaReceptoraId,
+            description: input.description,
+            date: input.date,
+            flow: input.flow,
+            amount,
+            sourceAccountId: input.sourceAccountId,
+            destinationAccountId: input.destinationAccountId,
           },
         });
       },
@@ -100,12 +107,12 @@ export class MovementsService {
     userId: string,
     id: string,
     patch: Partial<{
-      descripcion: string;
-      fecha: Date;
-      flujo: MovementFlujo;
-      valor: number;
-      cuentaEmisoraId: string;
-      cuentaReceptoraId: string;
+      description: string;
+      date: Date;
+      flow: MovementFlow;
+      amount: number;
+      sourceAccountId: string;
+      destinationAccountId: string;
     }>,
   ): Promise<Movement> {
     return this.prisma.$transaction(
@@ -113,61 +120,61 @@ export class MovementsService {
         const existing = await tx.movement.findFirst({ where: { id, userId } });
         if (!existing) throw NotFound('movement');
 
-        const newFlujo = patch.flujo ?? existing.flujo;
-        const newValor = patch.valor !== undefined ? BigInt(patch.valor) : existing.valor;
-        const newEmisoraId = patch.cuentaEmisoraId ?? existing.cuentaEmisoraId;
-        const newReceptoraId = patch.cuentaReceptoraId ?? existing.cuentaReceptoraId;
-        const newFecha = patch.fecha ?? existing.fecha;
-        const newDescripcion = patch.descripcion ?? existing.descripcion;
+        const newFlow = patch.flow ?? existing.flow;
+        const newAmount = patch.amount !== undefined ? BigInt(patch.amount) : existing.amount;
+        const newSourceAccountId = patch.sourceAccountId ?? existing.sourceAccountId;
+        const newDestinationAccountId = patch.destinationAccountId ?? existing.destinationAccountId;
+        const newDate = patch.date ?? existing.date;
+        const newDescription = patch.description ?? existing.description;
 
-        // Validate flujo/account-pair shape pre-DB to give a clean error
-        if (newFlujo === 'INTER_DISPONIBLE' && newEmisoraId === newReceptoraId) {
+        // Validate flow/account-pair shape pre-DB to give a clean error
+        if (newFlow === 'INTER_AVAILABLE' && newSourceAccountId === newDestinationAccountId) {
           throw new AppError(
             422,
-            'INVALID_FLUJO_SHAPE',
+            'INVALID_FLOW_SHAPE',
             'Inter-account movements require different accounts',
           );
         }
-        if (newFlujo !== 'INTER_DISPONIBLE' && newEmisoraId !== newReceptoraId) {
+        if (newFlow !== 'INTER_AVAILABLE' && newSourceAccountId !== newDestinationAccountId) {
           throw new AppError(
             422,
-            'INVALID_FLUJO_SHAPE',
+            'INVALID_FLOW_SHAPE',
             'Intra-account movements require the same account on both sides',
           );
         }
 
         await lockAccountsForUpdate(tx, userId, [
-          existing.cuentaEmisoraId,
-          existing.cuentaReceptoraId,
-          newEmisoraId,
-          newReceptoraId,
+          existing.sourceAccountId,
+          existing.destinationAccountId,
+          newSourceAccountId,
+          newDestinationAccountId,
         ]);
 
-        const ids = Array.from(new Set([newEmisoraId, newReceptoraId]));
+        const ids = Array.from(new Set([newSourceAccountId, newDestinationAccountId]));
         const accounts = await tx.account.findMany({ where: { id: { in: ids }, userId } });
         if (accounts.length !== ids.length) throw NotFound('account');
 
         // Reverse old
         await applyMovement(
           tx,
-          existing.flujo,
-          existing.valor,
-          existing.cuentaEmisoraId,
-          existing.cuentaReceptoraId,
+          existing.flow,
+          existing.amount,
+          existing.sourceAccountId,
+          existing.destinationAccountId,
           -1,
         );
         // Reapply new
-        await applyMovement(tx, newFlujo, newValor, newEmisoraId, newReceptoraId, 1);
+        await applyMovement(tx, newFlow, newAmount, newSourceAccountId, newDestinationAccountId, 1);
 
         return tx.movement.update({
           where: { id },
           data: {
-            descripcion: newDescripcion,
-            fecha: newFecha,
-            flujo: newFlujo,
-            valor: newValor,
-            cuentaEmisoraId: newEmisoraId,
-            cuentaReceptoraId: newReceptoraId,
+            description: newDescription,
+            date: newDate,
+            flow: newFlow,
+            amount: newAmount,
+            sourceAccountId: newSourceAccountId,
+            destinationAccountId: newDestinationAccountId,
           },
         });
       },
@@ -181,15 +188,15 @@ export class MovementsService {
         const existing = await tx.movement.findFirst({ where: { id, userId } });
         if (!existing) throw NotFound('movement');
         await lockAccountsForUpdate(tx, userId, [
-          existing.cuentaEmisoraId,
-          existing.cuentaReceptoraId,
+          existing.sourceAccountId,
+          existing.destinationAccountId,
         ]);
         await applyMovement(
           tx,
-          existing.flujo,
-          existing.valor,
-          existing.cuentaEmisoraId,
-          existing.cuentaReceptoraId,
+          existing.flow,
+          existing.amount,
+          existing.sourceAccountId,
+          existing.destinationAccountId,
           -1,
         );
         await tx.movement.delete({ where: { id } });

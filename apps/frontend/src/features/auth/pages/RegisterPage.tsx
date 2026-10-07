@@ -21,8 +21,8 @@ import { getApiErrorCode } from '@/shared/api/client';
 const buildSchema = (t: (k: string) => string) =>
   z
     .object({
-      nombre: z.string().min(1).max(80),
-      apellidos: z.string().min(1).max(120),
+      firstName: z.string().min(1).max(80),
+      lastName: z.string().min(1).max(120),
       email: z.string().email().max(254),
       password: z.string().min(8).max(128),
       confirmPassword: z.string().min(1),
@@ -33,8 +33,8 @@ const buildSchema = (t: (k: string) => string) =>
     });
 
 type FormValues = {
-  nombre: string;
-  apellidos: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -54,8 +54,8 @@ export default function RegisterPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await registerApi({
-        nombre: values.nombre,
-        apellidos: values.apellidos,
+        firstName: values.firstName,
+        lastName: values.lastName,
         email: values.email,
         password: values.password,
       });
@@ -85,8 +85,16 @@ export default function RegisterPage() {
         <form onSubmit={onSubmit}>
           <Stack>
             <Group grow>
-              <TextInput label={t('auth.nombre')} {...register('nombre')} error={errors.nombre?.message} />
-              <TextInput label={t('auth.apellidos')} {...register('apellidos')} error={errors.apellidos?.message} />
+              <TextInput
+                label={t('auth.firstName')}
+                {...register('firstName')}
+                error={errors.firstName?.message}
+              />
+              <TextInput
+                label={t('auth.lastName')}
+                {...register('lastName')}
+                error={errors.lastName?.message}
+              />
             </Group>
             <TextInput
               label={t('auth.email')}
