@@ -27,9 +27,13 @@ import { transactionsRoutes } from './modules/transactions/routes.js';
 import { movementsRoutes } from './modules/movements/routes.js';
 import { liabilityPaymentsRoutes } from './modules/liability-payments/routes.js';
 import { dashboardRoutes } from './modules/dashboard/routes.js';
+import { aiTransactionsRoutes } from './modules/ai-transactions/routes.js';
+import type { InterpretationProvider } from './modules/ai-transactions/provider.js';
 import { backupRoutes } from './modules/backup/routes.js';
 
-export async function buildApp(options: { logger?: boolean } = {}) {
+export async function buildApp(
+  options: { logger?: boolean; aiProvider?: InterpretationProvider } = {},
+) {
   const app = fastify({
     logger: options.logger ?? {
       level: config.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -96,6 +100,10 @@ export async function buildApp(options: { logger?: boolean } = {}) {
       await api.register(profileRoutes, { prefix: '/me' });
       await api.register(accountsRoutes, { prefix: '/accounts' });
       await api.register(categoriesRoutes, { prefix: '/categories' });
+      await api.register(aiTransactionsRoutes, {
+        prefix: '/ai-transactions',
+        provider: options.aiProvider,
+      });
       await api.register(transactionsRoutes, { prefix: '/transactions' });
       await api.register(movementsRoutes, { prefix: '/movements' });
       await api.register(liabilityPaymentsRoutes, { prefix: '/liability-payments' });

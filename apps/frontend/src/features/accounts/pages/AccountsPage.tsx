@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   Group,
@@ -24,7 +25,15 @@ import { Link } from 'react-router-dom';
 import { Page } from '@/shared/components/Page';
 import { MoneyDisplay } from '@/shared/components/MoneyDisplay';
 import { EmptyState } from '@/shared/components/EmptyState';
-import { accountKeys, deleteAccount, listAccounts } from '../api/accounts';
+import { useAuthStore } from '@/shared/stores/authStore';
+import {
+  defaultAccountKeys,
+  getDefaultAccount,
+  setDefaultAccount,
+  accountKeys,
+  deleteAccount,
+  listAccounts,
+} from '../api/accounts';
 import { openAccountFormModal } from '../components/AccountFormModal';
 import { openLiabilityPaymentModal } from '@/features/liability-payments/components/LiabilityPaymentModal';
 import { notifications } from '@mantine/notifications';
@@ -33,6 +42,16 @@ import { getApiErrorMessage } from '@/shared/api/client';
 export default function AccountsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const userId = useAuthStore((state) => state.user?.id);
+  const defaultQ = useQuery({
+    queryKey: [...defaultAccountKeys.all, userId],
+    queryFn: getDefaultAccount,
+  });
+  const defaultMut = useMutation({
+    mutationFn: setDefaultAccount,
+    onSuccess: () => qc.invalidateQueries({ queryKey: defaultAccountKeys.all }),
+    onError: (err) => notifications.show({ color: 'red', message: getApiErrorMessage(err) }),
+  });
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: accountKeys.all,
     queryFn: listAccounts,
@@ -41,7 +60,10 @@ export default function AccountsPage() {
   const removeMut = useMutation({
     mutationFn: deleteAccount,
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: accountKeys.all });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: accountKeys.all }),
+        qc.invalidateQueries({ queryKey: defaultAccountKeys.all }),
+      ]);
       notifications.show({ color: 'teal', message: t('common.deleted') });
     },
     onError: (err) => notifications.show({ color: 'red', message: getApiErrorMessage(err) }),
@@ -115,14 +137,16 @@ export default function AccountsPage() {
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {accounts.map((a) => (
-            <Card withBorder key={a.id} p="lg">
-              <Stack>
+            <Card withBorder key={a.id} p="lg" radius="md">
+              <Stack style={{ flex: 1 }}>
                 <Group justify="space-between" align="flex-start">
                   <Stack gap={2}>
                     <Title order={4}>{a.name}</Title>
-                    <Text size="xs" c="dimmed">
-                      {t('common.amount')}
-                    </Text>
+                    {defaultQ.data === a.id && (
+                      <Badge variant="light" radius="md">
+                        {t('ai.defaultAccount')}
+                      </Badge>
+                    )}
                   </Stack>
                   <Menu width={180} withinPortal position="bottom-end">
                     <Menu.Target>
@@ -131,6 +155,12 @@ export default function AccountsPage() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
+                      <Menu.Item
+                        disabled={defaultMut.isPending || defaultQ.isPending || defaultQ.isError}
+                        onClick={() => defaultMut.mutate(defaultQ.data === a.id ? null : a.id)}
+                      >
+                        {t(defaultQ.data === a.id ? 'ai.unsetDefault' : 'ai.setDefault')}
+                      </Menu.Item>
                       <Menu.Item
                         leftSection={<IconEdit size={14} />}
                         onClick={() => openAccountFormModal(a, t)}
@@ -194,7 +224,7 @@ export default function AccountsPage() {
                     <MoneyDisplay value={a.total} fw={600} />
                   </Stack>
                 </SimpleGrid>
-                <Group justify="space-between">
+                <Group justify="space-between" mt="auto" pt="xs">
                   {a.liabilitiesBalance > 0 && (
                     <Button
                       variant="light"

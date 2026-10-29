@@ -1,5 +1,7 @@
+import { useState } from 'react';
+import { AiTransactionChat } from '@/features/ai-transactions/components/AiTransactionChat';
 import { Button, Card, Group, MultiSelect, Stack, TextInput } from '@mantine/core';
-import { IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconSparkles } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useUrlFilters } from '@/shared/hooks/useUrlFilters';
@@ -33,6 +35,7 @@ const filtersSchema = z.object({
 
 export default function TransactionsPage() {
   const { t } = useTranslation();
+  const [chatOpened, setChatOpened] = useState(false);
   const [filters, setFilters] = useUrlFilters(filtersSchema);
   const accountsQ = useQuery({ queryKey: accountKeys.all, queryFn: listAccounts });
   const categoriesQ = useQuery({ queryKey: categoryKeys.all, queryFn: () => listCategories() });
@@ -42,11 +45,21 @@ export default function TransactionsPage() {
       title={t('transactions.title')}
       description={t('transactions.subtitle')}
       actions={
-        <Button leftSection={<IconPlus size={16} />} onClick={() => openTransactionFormModal(t)}>
-          {t('transactions.newTransaction')}
-        </Button>
+        <Group>
+          <Button
+            variant="light"
+            leftSection={<IconSparkles size={17} aria-hidden />}
+            onClick={() => setChatOpened(true)}
+          >
+            {t('ai.open')}
+          </Button>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => openTransactionFormModal(t)}>
+            {t('transactions.newTransaction')}
+          </Button>
+        </Group>
       }
     >
+      <AiTransactionChat opened={chatOpened} onClose={() => setChatOpened(false)} />
       <Card withBorder p="md">
         <Stack>
           <Group wrap="wrap">

@@ -1,0 +1,2 @@
+export const DEFAULT_MESSAGE_LENGTH = 2000;
+export const MAX_MESSAGE_LENGTH = 6000;

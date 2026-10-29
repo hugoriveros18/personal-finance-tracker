@@ -34,3 +34,11 @@ export async function updateAccount(id: string, input: { name: string }): Promis
 export async function deleteAccount(id: string): Promise<void> {
   await api.delete(`/accounts/${id}`);
 }
+
+export const defaultAccountKeys = { all: ['default-account'] as const };
+export async function getDefaultAccount(): Promise<string | null> {
+  return (await api.get<{ accountId: string | null }>('/accounts/default')).data.accountId;
+}
+export async function setDefaultAccount(accountId: string | null): Promise<void> {
+  await api.put('/accounts/default', { accountId });
+}

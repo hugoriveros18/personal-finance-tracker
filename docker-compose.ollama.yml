@@ -1,0 +1,35 @@
+# Optional CPU-only local provider. No Ollama port is exposed to the host/network.
+services:
+  db:
+    restart: 'no'
+  frontend:
+    restart: 'no'
+  ollama:
+    image: ollama/ollama:latest
+    restart: 'no'
+    stop_grace_period: 30s
+    environment:
+      OLLAMA_NO_CLOUD: '1'
+      OLLAMA_KEEP_ALIVE: '-1'
+      OLLAMA_NUM_PARALLEL: '1'
+      OLLAMA_MAX_LOADED_MODELS: '1'
+    volumes:
+      - pft_ollama:/root/.ollama
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    restart: 'no'
+    stop_grace_period: 30s
+    environment:
+      AI_TRANSACTIONS_ENABLED: 'true'
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL_LIFECYCLE: application
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+volumes:
+  pft_ollama:

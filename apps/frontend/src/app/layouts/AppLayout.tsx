@@ -29,6 +29,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { usePreferencesStore } from '@/shared/stores/preferencesStore';
 import { logout } from '@/features/auth/api/auth';
+// Initialize tab-session cleanup on every route, including logout without opening the chat.
+import '@/features/ai-transactions/store';
 
 export function AppLayout() {
   const [opened, { toggle }] = useDisclosure();
