@@ -1,3 +1,4 @@
+import { startOllamaFixture } from './ollama-fixture.mjs';
 import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -19,7 +20,11 @@ async function freePort() {
 }
 const [dbPort, apiPort, webPort] = await Promise.all([freePort(), freePort(), freePort()]);
 const directory = await mkdtemp(join(tmpdir(), 'pft-browser-db-'));
-const artifacts = join(root, 'test-results', 'e2e-server');
+const artifacts = join(
+  root,
+  'test-results',
+  process.env.PFT_AI_LIVE === '1' ? 'e2e-server-live' : 'e2e-server',
+);
 await mkdir(artifacts, { recursive: true });
 await mkdir(join(directory, 'uploads', 'avatars'), { recursive: true });
 const database = new EmbeddedPostgres({
@@ -33,11 +38,26 @@ const database = new EmbeddedPostgres({
   onError: () => {},
 });
 const web = `http://127.0.0.1:${webPort}`;
+const ollamaFixture = process.env.PFT_AI_LIVE === '1' ? null : await startOllamaFixture();
 const env = {
   ...process.env,
   PFT_E2E_BASE_URL: web,
   PFT_E2E_RUN: '1',
   NODE_ENV: 'test',
+  AI_TRANSACTIONS_ENABLED: 'true',
+  OLLAMA_MODEL:
+    process.env.PFT_AI_LIVE === '1'
+      ? (process.env.OLLAMA_MODEL ?? 'qwen3:4b-instruct')
+      : 'test-fixture',
+  OLLAMA_TIMEOUT_MS:
+    process.env.PFT_AI_LIVE === '1' ? (process.env.OLLAMA_TIMEOUT_MS ?? '120000') : '5000',
+  OLLAMA_NUM_CTX: process.env.PFT_AI_LIVE === '1' ? (process.env.OLLAMA_NUM_CTX ?? '4096') : '4096',
+  OLLAMA_KEEP_ALIVE_SECONDS: '60',
+  OLLAMA_MODEL_LIFECYCLE: 'application',
+  OLLAMA_NUM_PREDICT:
+    process.env.PFT_AI_LIVE === '1' ? (process.env.OLLAMA_NUM_PREDICT ?? '768') : '768',
+  AI_TRANSACTIONS_TIME_ZONE: 'America/Bogota',
+  OLLAMA_BASE_URL: ollamaFixture?.url ?? process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434',
   DATABASE_URL: `postgresql://pft:pft-test-only@127.0.0.1:${dbPort}/pft_test`,
   JWT_ACCESS_SECRET: 'browser-test-access-secret',
   JWT_REFRESH_SECRET: 'browser-test-refresh-secret',
@@ -123,6 +143,7 @@ try {
   console.error(error);
   process.exitCode = 1;
 } finally {
+  await ollamaFixture?.close();
   for (const [index, child] of children.entries()) {
     if (child.exitCode === null && child.signalCode === null) {
       await new Promise((resolve) => {

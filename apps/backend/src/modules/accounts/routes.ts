@@ -1,4 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
+import { lockAccountsForUpdate } from '../../shared/locking.js';
+import { NotFound } from '../../shared/errors.js';
 import { idParamSchema } from '../../shared/zod.js';
 import { createAccountSchema, updateAccountSchema } from './schemas.js';
 
@@ -12,6 +15,34 @@ export const accountsRoutes: FastifyPluginAsyncZod = async (app) => {
     });
     return { items };
   });
+
+  app.get('/default', async (req) => {
+    const user = await app.prisma.user.findUniqueOrThrow({ where: { id: req.userId } });
+    return { accountId: user.defaultAccountId };
+  });
+
+  app.put(
+    '/default',
+    { schema: { body: z.object({ accountId: z.string().uuid().nullable() }).strict() } },
+    async (req) => {
+      await app.prisma.$transaction(
+        async (tx) => {
+          const accountId = req.body.accountId;
+          if (accountId) {
+            await lockAccountsForUpdate(tx, req.userId, [accountId]);
+            if (!(await tx.account.findFirst({ where: { id: accountId, userId: req.userId } })))
+              throw NotFound('account');
+          }
+          await tx.user.update({
+            where: { id: req.userId },
+            data: { defaultAccountId: accountId },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+      return { accountId: req.body.accountId };
+    },
+  );
 
   app.get('/:id', { schema: { params: idParamSchema } }, async (req) => {
     const item = await app.prisma.account.findFirstOrThrow({

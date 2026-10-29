@@ -1,0 +1,46 @@
+.details {
+  min-width: 0;
+}
+
+.summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  border-radius: var(--mantine-radius-xs);
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 4px;
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform 150ms ease;
+}
+
+.details[open] > .summary .chevron {
+  transform: rotate(90deg);
+}
+
+.aligned .chevron {
+  position: absolute;
+  inset-inline-start: -22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

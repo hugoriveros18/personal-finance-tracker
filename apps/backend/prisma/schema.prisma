@@ -34,6 +34,12 @@ enum MovementFlow {
   INTRA_SAVINGS_TO_AVAILABLE
 }
 
+enum AiDraftStatus {
+  pending
+  confirmed
+  cancelled
+}
+
 model User {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   firstName         String   @map("first_name") @db.VarChar(80)
@@ -43,15 +49,19 @@ model User {
   avatarPath        String?  @map("avatar_path") @db.Text
   preferredLanguage Language @default(es) @map("preferred_language")
   preferredTheme    Theme    @default(light) @map("preferred_theme")
+  defaultAccountId  String?  @map("default_account_id") @db.Uuid
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  categories        Category[]
-  accounts          Account[]
-  transactions      Transaction[]
-  movements         Movement[]
-  liabilityPayments LiabilityPayment[]
-  refreshTokens     RefreshToken[]
+  categories          Category[]
+  accounts            Account[]
+  transactions        Transaction[]
+  movements           Movement[]
+  liabilityPayments   LiabilityPayment[]
+  refreshTokens       RefreshToken[]
+  defaultAccount      Account?             @relation("DefaultAccount", fields: [defaultAccountId], references: [id], onDelete: SetNull)
+  aiTransactionDrafts AiTransactionDraft[]
+  aiTransactionBatches AiTransactionBatch[]
 
   @@map("user")
 }
@@ -88,10 +98,60 @@ model Account {
   movementsAsSource      Movement[]         @relation("MovementSource")
   movementsAsDestination Movement[]         @relation("MovementDestination")
   liabilityPayments      LiabilityPayment[]
+  defaultForUsers        User[]             @relation("DefaultAccount")
 
   @@unique([userId, name])
   @@index([userId])
   @@map("account")
+}
+
+model AiTransactionDraft {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  proposal      Json
+  status        AiDraftStatus @default(pending)
+  expiresAt     DateTime      @map("expires_at") @db.Timestamptz(6)
+  confirmedHash String?       @map("confirmed_hash") @db.VarChar(64)
+  // Keep the consumed draft even when its transaction is later deleted.
+  transactionId String?       @map("transaction_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batchItem     AiTransactionBatchItem?
+
+  @@index([userId, status, expiresAt])
+  @@map("ai_transaction_draft")
+}
+
+model AiTransactionBatch {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  requestId     String   @map("request_id") @db.Uuid
+  message       String   @db.Text
+  referenceDate String   @map("reference_date") @db.VarChar(10)
+  timeZone      String   @map("time_zone") @db.VarChar(80)
+  notes         Json
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         AiTransactionBatchItem[]
+
+  @@unique([userId, requestId])
+  @@map("ai_transaction_batch")
+}
+
+model AiTransactionBatchItem {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId    String @map("batch_id") @db.Uuid
+  position   Int
+  sourceText String @map("source_text") @db.Text
+  context    Json
+  kind       String @db.VarChar(20)
+  draftId    String? @unique @map("draft_id") @db.Uuid
+  batch      AiTransactionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  draft      AiTransactionDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
+
+  @@unique([batchId, position])
+  @@map("ai_transaction_batch_item")
 }
 
 model Transaction {

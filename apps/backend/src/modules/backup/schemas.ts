@@ -10,6 +10,7 @@ export const exportEnvelopeSchema = z.object({
     email: z.string().email().max(254),
     preferredLanguage: z.enum(['es', 'en']),
     preferredTheme: z.enum(['light', 'dark']),
+    defaultAccountExportId: z.string().min(1).nullable().optional(),
   }),
   categories: z.array(
     z.object({

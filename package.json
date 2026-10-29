@@ -15,10 +15,18 @@
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down",
     "compose:logs": "docker compose logs -f",
+    "compose:ai:up": "docker compose -f docker-compose.yml -f docker-compose.ollama.yml up --build -d --wait --wait-timeout 180",
+    "compose:ai:stop": "docker compose -f docker-compose.yml -f docker-compose.ollama.yml stop",
+    "compose:ai:down": "docker compose -f docker-compose.yml -f docker-compose.ollama.yml down",
+    "compose:ai:logs": "docker compose -f docker-compose.yml -f docker-compose.ollama.yml logs -f",
+    "compose:ai:status": "docker compose -f docker-compose.yml -f docker-compose.ollama.yml ps --all",
     "test:integration": "npm -w apps/backend run test:integration",
     "test:all": "npm test && npm run test:integration && npm run test:e2e",
     "test:e2e": "node tests/e2e/run.mjs",
-    "test:e2e:ui": "node tests/e2e/run.mjs --ui"
+    "test:e2e:ui": "node tests/e2e/run.mjs --ui",
+    "test:ai:live": "tsx apps/backend/tests/ai-evaluation/run.ts",
+    "test:ai:batch:live": "tsx apps/backend/tests/ai-evaluation/batches.ts",
+    "test:ai:quality:live": "tsx apps/backend/tests/ai-evaluation/quality.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

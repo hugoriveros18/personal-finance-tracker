@@ -31,14 +31,23 @@ services:
       UPLOAD_DIR: /data/uploads
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      AI_TRANSACTIONS_ENABLED: ${AI_TRANSACTIONS_ENABLED:-false}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-instruct}
+      OLLAMA_MODEL_LIFECYCLE: ${OLLAMA_MODEL_LIFECYCLE:-request}
+      OLLAMA_KEEP_ALIVE_SECONDS: ${OLLAMA_KEEP_ALIVE_SECONDS:-60}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-120000}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-4096}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-768}
+      AI_TRANSACTIONS_TIME_ZONE: ${AI_TRANSACTIONS_TIME_ZONE:-America/Bogota}
+      AI_TRANSACTIONS_MAX_MESSAGE_LENGTH: ${AI_TRANSACTIONS_MAX_MESSAGE_LENGTH:-2000}
     volumes:
       - pft_uploads:/data/uploads
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test:
-        ['CMD-SHELL', 'wget -qO- http://localhost:4000/api/v1/health > /dev/null || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4000/api/v1/health > /dev/null || exit 1']
       interval: 10s
       timeout: 3s
       retries: 5

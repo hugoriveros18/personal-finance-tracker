@@ -194,6 +194,79 @@ When raising new errors prefer `AppError` from `shared/errors.ts` so the respons
 
 ---
 
+## Optional local AI transaction experiment
+
+- `modules/ai-transactions` interprets one or several Spanish income/expense/credit purchases through a local Ollama HTTP
+  adapter. `AI_TRANSACTIONS_ENABLED` defaults to false. Model, URL, context/output limits,
+  timeout and interpretation time zone are backend environment settings.
+- The provider receives names/types and date context only. Output is untrusted and validated
+  with Zod. Interpretation creates only an operational draft; it never changes finances.
+- Confirmation consumes the draft and calls `TransactionsService.createInTransaction` inside
+  the same serializable transaction. This helper retains the existing account locks, ownership
+  checks, category coherence and balance deltas. Never call it outside a serializable transaction.
+- `User.defaultAccountId` is optional, set through authenticated `PUT /accounts/default` with
+  ownership checks, and cleared when that account is deleted. Only omitted account references
+  use it in the AI flow. Backup v2 preserves it using an optional export-local reference.
+- `AiTransactionDraft` metadata is excluded from financial backups. Confirmed draft receipts
+  remain consumed after transaction deletion. Imports cancel pending drafts.
+- Credit purchases use `liability` with an existing expense category. Ground automatic liability
+  selection in explicit source credit/liability wording; an account name alone is not evidence.
+  Debt repayments remain unsupported and must use the existing liability-payment module.
+  Date phrases are resolved by code in the configured calendar/time zone, including qualified
+  last weekdays and named months without a year (use the server reference year).
+  `k` amounts use integer COP-cent conversion; never accept invented amounts.
+  Descriptions fall back to grounded message/category content instead of an empty field.
+- React reuses `TransactionFields` for the manual form and AI review. Chat data uses a
+  versioned, Zod-validated tab-scoped `sessionStorage` snapshot, hydrated only after verifying
+  the authenticated user ID. Reload preserves messages, edits and receipts; logout/account
+  changes clear them. Never persist authentication credentials with chat data.
+- Restore in-flight interpretation as interrupted; restore saving as uncertain with the exact
+  submitted payload and draft ID. Never retry requests automatically on hydration. Preserve
+  uncertain confirmations even past expiry, since the server may already have committed;
+  expire only unused, unsubmitted drafts. Form dates serialize as calendar strings and revive
+  with `parseApiDate`, not UTC-shifted Dates. Storage errors fall back to memory with UI feedback.
+- `OLLAMA_MODEL_LIFECYCLE=application` in the optional Compose override preloads the model
+  from backend startup and retains it for that Docker session (`keep_alive: -1`). Graceful
+  backend shutdown requests unload; stopping Ollama terminates its model process. Browser
+  focus, inactivity and logout never control residency. There are no browser lease endpoints.
+  Failed startup preloads retry every 30 seconds until success/shutdown. The default native
+  `request` mode does not preload and unloads after the last request, with bounded fallback
+  retention. Never apply application residency to a shared, permanently running Ollama server.
+- Use `npm run compose:ai:up` / `compose:ai:stop` to start/stop all four services together.
+  The override disables automatic restart and reuses the existing finance/upload volumes.
+  Preserve those volumes and use disposable data for financial tests. Legacy Spanish-schema
+  databases are incompatible with the English initial migration; never baseline or reset them
+  blindly. Keeping legacy data requires a reviewed migration; discarding it requires explicit
+  user authorization and a private backup.
+- A lost confirmation response freezes the exact submitted payload in the chat store. Retry
+  that same draft/payload until acknowledged; never reinterpret or create a fresh draft as a
+  save retry. Cache refresh errors must not change a successful save into an uncertain one.
+- `npm run test:ai:live` runs the real-model evaluation without a database. Standard `test:all`
+  uses provider mocks/HTTP fixtures and disposable PostgreSQL, without requiring Ollama.
+- Free-form chat organization uses an optional provider `organize` method, quoted source/context,
+  durable batches/items and a frozen server calendar reference. One recognized operation retains
+  the individual form; several open `BatchReview`. Keep the legacy no-requestId single API working.
+- Client request IDs recover the same organized batch; item preparation atomically reuses the
+  same draft. Neither organization nor preparation modifies balances. Shared scope never
+  overrides an explicit local value; uncertain fields never silently receive defaults.
+- Collection confirmation calls the same `registerEntry`/draft-confirmation path sequentially.
+  Explicit approval may partially succeed. Freeze uncertain confirmations and stop the queue;
+  retain saved receipts and never automatically retry on reload. Visual grouping does not reorder saves.
+- Batch/source metadata is operational data excluded from backups, retained in PostgreSQL;
+  expiry is not deletion. Import invalidates unprepared batches as well as pending drafts.
+- `npm run test:ai:batch:live` evaluates synthetic free-form collections without financial writes;
+  `AI_EVALUATION_DOCKER=1` uses the existing backend's Docker network without exposing Ollama.
+- Extractor prompt 7 uses a provider-only purchase label before transaction fields in a single
+  schema response; discard that label after validation. Keep category suggestions semantic,
+  editable and resolved against owned entities, without hardcoded product/category mappings.
+  `test:ai:quality:live` measures category/date regressions and optional input token budgets.
+- `AI_TRANSACTIONS_MAX_MESSAGE_LENGTH` defaults to 2,000 (validated range 500–6,000).
+  Capabilities publish the limit; count the raw input, reject oversized requests server-side
+  and retain pasted text for editing. Do not silently truncate or raise limits with model changes.
+- See `docs/ollama-experiment.md` for WSL2, local-only setup, model switching and live E2E.
+
+---
+
 ## Local development without Docker
 
 You can run the database in Docker and the apps natively (faster HMR, easier debugging):

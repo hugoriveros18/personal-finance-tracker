@@ -58,55 +58,58 @@ export class TransactionsService {
       categoryId: string;
     },
   ): Promise<Transaction> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        await lockAccountsForUpdate(tx, userId, [input.accountId]);
-        const account = await tx.account.findFirst({
-          where: { id: input.accountId, userId },
-        });
-        if (!account) throw NotFound('account');
-        const category = await tx.category.findFirst({
-          where: { id: input.categoryId, userId },
-        });
-        if (!category) throw NotFound('category');
-        // Coherence (DB trigger also enforces; better error than 23514)
-        if (input.type === 'income' && category.type !== 'income') {
-          throw new AppError(
-            422,
-            'CATEGORY_TYPE_MISMATCH',
-            'Income transactions require an income category',
-          );
-        }
-        if (
-          (input.type === 'expense' || input.type === 'liability') &&
-          category.type !== 'expense'
-        ) {
-          throw new AppError(
-            422,
-            'CATEGORY_TYPE_MISMATCH',
-            'Expense and liability transactions require an expense category',
-          );
-        }
+    return this.prisma.$transaction((tx) => this.createInTransaction(tx, userId, input), {
+      isolationLevel: 'Serializable',
+    });
+  }
 
-        const amount = BigInt(input.amount);
-        const delta = deltaForTransaction(input.type, amount);
-        await applyDeltaToAccount(tx, input.accountId, delta);
+  /** Caller must use a serializable transaction. Account locks and deltas stay here. */
+  async createInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    input: Parameters<TransactionsService['create']>[1],
+  ): Promise<Transaction> {
+    await lockAccountsForUpdate(tx, userId, [input.accountId]);
+    const account = await tx.account.findFirst({
+      where: { id: input.accountId, userId },
+    });
+    if (!account) throw NotFound('account');
+    const category = await tx.category.findFirst({
+      where: { id: input.categoryId, userId },
+    });
+    if (!category) throw NotFound('category');
+    // Coherence (DB trigger also enforces; better error than 23514)
+    if (input.type === 'income' && category.type !== 'income') {
+      throw new AppError(
+        422,
+        'CATEGORY_TYPE_MISMATCH',
+        'Income transactions require an income category',
+      );
+    }
+    if ((input.type === 'expense' || input.type === 'liability') && category.type !== 'expense') {
+      throw new AppError(
+        422,
+        'CATEGORY_TYPE_MISMATCH',
+        'Expense and liability transactions require an expense category',
+      );
+    }
 
-        return tx.transaction.create({
-          data: {
-            userId,
-            accountId: input.accountId,
-            categoryId: input.categoryId,
-            categoryType: category.type,
-            description: input.description,
-            date: input.date,
-            type: input.type,
-            amount,
-          },
-        });
+    const amount = BigInt(input.amount);
+    const delta = deltaForTransaction(input.type, amount);
+    await applyDeltaToAccount(tx, input.accountId, delta);
+
+    return tx.transaction.create({
+      data: {
+        userId,
+        accountId: input.accountId,
+        categoryId: input.categoryId,
+        categoryType: category.type,
+        description: input.description,
+        date: input.date,
+        type: input.type,
+        amount,
       },
-      { isolationLevel: 'Serializable' },
-    );
+    });
   }
 
   async update(

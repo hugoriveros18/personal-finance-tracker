@@ -65,6 +65,32 @@ Vite proxies `/api` and `/uploads` to `http://localhost:4000`, so no CORS tweaks
 
 ---
 
+## Optional local AI transaction experiment
+
+Interpret Spanish income/expense/credit-purchase messages through local Ollama. A single transaction
+keeps its individual form; free-form lists and grouped prose open an editable collection review
+with explicit selection, sequential registration and durable per-item recovery. Includes a default-account preference, searchable
+entity selectors, tab-scoped chat history that survives reloads and durable confirmation deduplication. The
+experiment is disabled by default and never calls a cloud AI service.
+
+The chat displays the configured input limit (2,000 characters by default), actual per-record
+preparation progress and editable suggestions. Spanish dates such as `26 de Octubre` use the
+current reference year unless another year is given.
+
+For a four-container Docker session (frontend, backend, PostgreSQL and Ollama), run
+`npm run compose:ai:up` and download the configured model once inside Ollama. The backend
+preloads the model and retains it throughout the Docker session, including window changes
+and logout. Finish with `npm run compose:ai:stop` to stop all four services and release model
+memory while preserving your data and downloaded model files.
+
+The AI and manual screens share the existing database/upload volumes. Use disposable
+accounts/data for financial tests, and check the guide before starting against a legacy
+Spanish-schema database.
+
+See [installation, configuration, WSL2, model switching and real-model evaluation](docs/ollama-experiment.md).
+`npm run test:ai:live` evaluates a running local model; ordinary `npm run test:all` remains
+independent of Ollama and uses disposable databases.
+
 ## Building for production
 
 ```bash

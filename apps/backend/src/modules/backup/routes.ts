@@ -99,6 +99,9 @@ export const backupRoutes: FastifyPluginAsyncZod = async (app) => {
         email: user.email,
         preferredLanguage: user.preferredLanguage,
         preferredTheme: user.preferredTheme,
+        defaultAccountExportId: user.defaultAccountId
+          ? (accIdToExport.get(user.defaultAccountId) ?? null)
+          : null,
       },
       categories: categories.map((c) => ({
         exportId: catIdToExport.get(c.id)!,
@@ -173,6 +176,9 @@ export const backupRoutes: FastifyPluginAsyncZod = async (app) => {
     if (accIds.size !== envelope.accounts.length) {
       throw new AppError(422, 'DUPLICATE_EXPORT_ID', 'Duplicate account exportId');
     }
+    if (envelope.user.defaultAccountExportId && !accIds.has(envelope.user.defaultAccountExportId)) {
+      throw new AppError(422, 'BROKEN_REFERENCE', 'Default account references a missing account');
+    }
     for (const t of envelope.transactions) {
       if (!catIds.has(t.categoryExportId) || !accIds.has(t.accountExportId)) {
         throw new AppError(
@@ -220,6 +226,14 @@ export const backupRoutes: FastifyPluginAsyncZod = async (app) => {
     const userId = req.userId;
     await app.prisma.$transaction(
       async (tx) => {
+        await tx.aiTransactionBatch.updateMany({
+          where: { userId },
+          data: { expiresAt: new Date() },
+        });
+        await tx.aiTransactionDraft.updateMany({
+          where: { userId, status: 'pending' },
+          data: { status: 'cancelled' },
+        });
         if (mode === 'replace') {
           await tx.transaction.deleteMany({ where: { userId } });
           await tx.movement.deleteMany({ where: { userId } });
@@ -263,6 +277,17 @@ export const backupRoutes: FastifyPluginAsyncZod = async (app) => {
             },
           });
           accMap.set(a.exportId, created.id);
+        }
+
+        if (envelope.user.defaultAccountExportId !== undefined || mode === 'replace') {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              defaultAccountId: envelope.user.defaultAccountExportId
+                ? accMap.get(envelope.user.defaultAccountExportId)!
+                : null,
+            },
+          });
         }
 
         // Replay transactions chronologically

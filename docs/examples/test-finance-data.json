@@ -1,0 +1,58 @@
+{
+  "$schema": "pft-export-v2",
+  "exportedAt": "2026-10-27T19:55:38.000Z",
+  "appVersion": "1.0.0",
+  "user": {
+    "firstName": "Demo",
+    "lastName": "User",
+    "email": "demo@example.com",
+    "preferredLanguage": "es",
+    "preferredTheme": "light"
+  },
+  "categories": [
+    { "exportId": "c-0001", "name": "Mercado", "type": "expense" },
+    { "exportId": "c-0002", "name": "Transporte", "type": "expense" },
+    { "exportId": "c-0003", "name": "Servicios Públicos", "type": "expense" },
+    { "exportId": "c-0004", "name": "Arriendo", "type": "expense" },
+    { "exportId": "c-0005", "name": "Restaurantes", "type": "expense" },
+    { "exportId": "c-0006", "name": "Salud", "type": "expense" },
+    { "exportId": "c-0007", "name": "Educación", "type": "expense" },
+    { "exportId": "c-0008", "name": "Entretenimiento", "type": "expense" },
+    { "exportId": "c-0009", "name": "Ropa", "type": "expense" },
+    { "exportId": "c-0010", "name": "Suscripciones", "type": "expense" },
+    { "exportId": "c-0011", "name": "Hogar", "type": "expense" },
+    { "exportId": "c-0012", "name": "Salario", "type": "income" }
+  ],
+  "accounts": [
+    {
+      "exportId": "a-0001",
+      "name": "Bancolombia",
+      "initial": {
+        "availableBalance": 200000000,
+        "savingsBalance": 0,
+        "liabilitiesBalance": 0
+      }
+    },
+    {
+      "exportId": "a-0002",
+      "name": "Davivienda",
+      "initial": {
+        "availableBalance": 100000000,
+        "savingsBalance": 0,
+        "liabilitiesBalance": 0
+      }
+    },
+    {
+      "exportId": "a-0003",
+      "name": "Nu",
+      "initial": {
+        "availableBalance": 50000000,
+        "savingsBalance": 0,
+        "liabilitiesBalance": 0
+      }
+    }
+  ],
+  "transactions": [],
+  "movements": [],
+  "liabilityPayments": []
+}
