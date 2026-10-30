@@ -88,6 +88,17 @@ Offline browser evidence remains in `playwright-report/` and `test-results/e2e/`
 evidence uses `test-results/live-playwright-report/` and `test-results/e2e-live/`, so running the
 real provider does not replace the complete regression report.
 
+## Full implementation regression: October 28, 2026
+
+After the single/collection chat and UX changes, the local regression run passed **370 tests**:
+224 backend unit tests, 100 frontend unit/component tests, 36 HTTP/database integration tests
+and 10 browser E2E scenarios. Lint, typecheck, production builds and the Docker/browser smoke
+check also passed. This is a dated result, not a claim that CI or later revisions were tested.
+
+The automated run used simulated provider responses and disposable PostgreSQL databases.
+It verifies application behavior and financial integrity separately from model accuracy. The
+240-test result above belongs to the earlier baseline; it is not the final implementation count.
+
 ## Category and named-date regressions: October 28, 2026
 
 `test:ai:quality:live` uses a synthetic twelve-category profile rather than a minimal choice

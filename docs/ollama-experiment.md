@@ -4,6 +4,10 @@ This optional feature interprets one or several Spanish income, expense or credi
 model. The backend validates the proposal, and the user reviews an editable form before
 explicitly confirming. Interpretation never creates a financial transaction.
 
+See [the architecture and frontend component map](ollama-architecture.md) for implementation
+details, API boundaries and recovery states. For disposable accounts/categories without sample
+transactions, use [the sample import guide](examples/README.md).
+
 ## Requirements
 
 - Existing PFT dependencies and PostgreSQL 16.
@@ -248,7 +252,8 @@ category, plus the existing read-only transaction details. If a save response is
 proposal locks the exact submitted values and offers **Retry registration**. It retries the
 same draft and payload, without interpreting the message again. Editing, cancelling and
 starting another operation remain unavailable until the server acknowledges the outcome;
-closing/reopening the drawer preserves this recovery state in browser memory.
+closing/reopening the drawer preserves this recovery state; the tab's validated session snapshot
+also restores it after reload, subject to the storage limitations below.
 
 Account selection uses explicit source-text names first. When a reference is unknown or
 ambiguous, choose manually. Only omitted accounts use the default; without a default, a sole
@@ -256,7 +261,7 @@ existing account is preselected. Otherwise the account remains empty.
 
 When no date is supplied, the backend chooses today in the configured time zone. The model
 extracts the date phrase; backend code resolves `hoy`, `ayer`, `anteayer`, `mañana`, `pasado
-mañana`, `DD/MM/YYYY`, `DD-MM-YYYY`, `hace N días` / `hace N semanas`, ISO calendar dates and qualified weekdays such as `el viernes pasado`, `el último
+mañana`, `DD/MM/YYYY`, `DD-MM-YYYY`, `hace N días` / `hace N semanas`, ISO calendar dates, named months such as `26 de Octubre` (the reference year when omitted), and qualified weekdays such as `el viernes pasado`, `el último
 miércoles` or `viernes de la semana pasada`. A past weekday always precedes today, including
 on that same weekday. Calendar weeks start on Monday for `de la semana pasada`. Conflicting
 dates, an unqualified weekday such as `el viernes` and unsupported expressions require manual
