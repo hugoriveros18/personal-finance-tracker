@@ -88,6 +88,9 @@ accounts/data for financial tests, and check the guide before starting against a
 Spanish-schema database.
 
 See [installation, configuration, WSL2, model switching and real-model evaluation](docs/ollama-experiment.md).
+For the data flow, frontend components, API and persistence boundaries, see
+[the implemented AI architecture](docs/ollama-architecture.md).
+Disposable import data is available in [the sample-data guide](docs/examples/README.md).
 `npm run test:ai:live` evaluates a running local model; ordinary `npm run test:all` remains
 independent of Ollama and uses disposable databases.
 
@@ -159,6 +162,8 @@ personal-finance-tracker/
 ├── README.md
 ├── CLAUDE.md                    # canonical instructions for Claude Code in this repo
 ├── docker-compose.yml
+├── docker-compose.ollama.yml     # optional fourth service and model lifecycle
+├── docs/                        # AI architecture, setup, evaluations and sample imports
 ├── .env.example
 ├── package.json                 # workspaces root
 ├── tsconfig.base.json
@@ -178,6 +183,7 @@ personal-finance-tracker/
     │           ├── accounts/
     │           ├── categories/
     │           ├── transactions/
+    │           ├── ai-transactions/ # operational drafts/batches and local provider
     │           ├── movements/
     │           ├── liability-payments/
     │           ├── dashboard/
@@ -187,7 +193,7 @@ personal-finance-tracker/
             ├── main.tsx
             ├── app/             # router, providers, layouts
             ├── features/        # auth, accounts, categories, transactions, movements,
-            │                    # liability-payments, dashboard, profile, backup
+            │                    # liability-payments, dashboard, profile, backup, ai-transactions
             ├── shared/          # api client, components, hooks, lib, stores, types
             ├── i18n/            # es, en
             └── styles/
@@ -197,14 +203,19 @@ personal-finance-tracker/
 
 ## Data model
 
-| Entity              | Notes                                                                                                       |
-| ------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `user`              | firstName, lastName, email (unique), avatarPath, preferredLanguage, preferredTheme                          |
-| `category`          | type: `income` \| `expense`                                                                                 |
-| `account`           | availableBalance, savingsBalance, liabilitiesBalance, total = availableBalance + savingsBalance             |
-| `transaction`       | type: `income` \| `expense` \| `liability`. Affects account balance per type                                |
-| `movement`          | flow: `INTER_AVAILABLE` \| `INTRA_AVAILABLE_TO_SAVINGS` \| `INTRA_SAVINGS_TO_AVAILABLE`                     |
-| `liability_payment` | Reduces both `availableBalance` and `liabilitiesBalance` of one account. Excluded from expense aggregations |
+| Entity              | Notes                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `user`              | firstName, lastName, email (unique), avatarPath, preferredLanguage, preferredTheme, optional defaultAccountId |
+| `category`          | type: `income` \| `expense`                                                                                   |
+| `account`           | availableBalance, savingsBalance, liabilitiesBalance, total = availableBalance + savingsBalance               |
+| `transaction`       | type: `income` \| `expense` \| `liability`. Affects account balance per type                                  |
+| `movement`          | flow: `INTER_AVAILABLE` \| `INTRA_AVAILABLE_TO_SAVINGS` \| `INTRA_SAVINGS_TO_AVAILABLE`                       |
+| `liability_payment` | Reduces both `availableBalance` and `liabilitiesBalance` of one account. Excluded from expense aggregations   |
+
+The AI operational tables are `ai_transaction_draft` (proposal, expiry and confirmation receipt),
+`ai_transaction_batch` (source, frozen calendar reference and request identity) and
+`ai_transaction_batch_item` (quoted operation, shared context and prepared draft link).
+They are distinct from financial events and excluded from financial backups.
 
 The Postgres schema includes:
 
@@ -259,6 +270,11 @@ docker compose exec backend npx prisma studio
   - `dry run` validates without writing.
 
 Exports use `$schema: "pft-export-v2"`. Keys and enum values are English in every locale; choosing Spanish only changes presentation. Names and descriptions entered by users are preserved as entered. Amounts are integer COP cents (1 COP = 100 cents). The exporter reconstructs initial balances; the importer replays events by date inside a serializable transaction.
+
+Backup v2 optionally includes `user.defaultAccountExportId`; restore maps it to the imported
+account identity. Older v2 files without that field remain supported. Import invalidates pending
+AI drafts and unprepared batches. Exporting financial data does not export the browser chat
+snapshot or server-side AI operational history.
 
 The English standardization intentionally starts a new migration history (`20261007000000_init`). It targets a fresh database and does not provide adapters for earlier API fields, URL parameters or backup formats. If a local development database already has the previous migration history, recreate that empty development database before starting the new version. Database reset commands delete data and must only be used on a database you intend to discard.
 

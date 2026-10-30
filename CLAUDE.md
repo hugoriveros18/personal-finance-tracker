@@ -264,6 +264,8 @@ When raising new errors prefer `AppError` from `shared/errors.ts` so the respons
   Capabilities publish the limit; count the raw input, reject oversized requests server-side
   and retain pasted text for editing. Do not silently truncate or raise limits with model changes.
 - See `docs/ollama-experiment.md` for WSL2, local-only setup, model switching and live E2E.
+- See `docs/ollama-architecture.md` for the implemented data flow, frontend component map,
+  authenticated API, recovery states and the distinction between operational and financial data.
 
 ---
 
